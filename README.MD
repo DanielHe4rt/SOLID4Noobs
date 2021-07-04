@@ -13,15 +13,7 @@
 
   <h1 align="center"><img src="../.github/deno.svg" alt="Imagem da linguagem" width="120"></h1>
   
-  <p align="center">
-    <br />
-    <a href="#ROADMAP"><strong>Explore a documentação »</strong></a>
-    <br />
-    <br />
-    <a href="link-para-abrir-issue">Report Bug</a>
-    ·
-    <a href="link-para-abrir-issue">Request Feature</a>
-  </p>
+  
 </p>
     
  <!-- ABOUT THE PROJECT -->
@@ -32,13 +24,12 @@ SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software 
 <!-- ROADMAP OF PROJECT -->
 
 ## ROADMAP
-
-- [Introdução](docs/1-introduction.md)
-- [Single Responsibility](link-primeira-parte)
+- [Introdução](docs/0-introducao.md)
+- [Single Responsibility Principle](docs/1-srp.md)
 - [Open-Closed Principle](link-segunda-parte)
-- [Liskov Substitution](link-terceira-parte)
-- [Interface Segregation](link-terceira-parte)
-- [Dependency Inversion](link-terceira-parte)
+- [Liskov Substitution Principle](link-terceira-parte)
+- [Interface Segregation Principle](link-terceira-parte)
+- [Dependency Inversion Principle](link-terceira-parte)
 
   
 <!-- CONTRIBUTING -->
