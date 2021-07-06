@@ -1,7 +1,27 @@
 # 1 - Single Responsibility Principle
 
-O Principio de responsabilidade única se dá a ideia de que o software deverá ser escrito e ter uma única responsabilidade dentro do ecossistema produzido.
+O Principio de responsabilidade única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenbilidade além de estar tudo em um único ~fucking~ arquivo. É foda né? 
 
+O SRP vem para organizar melhor esse arquivo/projeto monolito, e descentralizar o código em responsabilidades. Pense nisso como um melhor uso dos **namespaces** dentro do seu projeto.
+
+```
+App
+├── Http
+│   └── Controllers
+│       └── MessagesController.php
+├── Models
+│   └── Message.php
+├── Events
+│   └── ChatMessage.php
+```
+
+Cada uma das pastas acima tem uma responsabilidade. Sendo elas:
+
+- Controller -> Receber, processar e responder requisições;
+- Model -> Comunicar com o banco de dados;
+- Event -> Disparar mensageria.
+
+Podemos dizer que isso está interessante? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desse código. Será que eles realmente mantem a responsabilidade ou existem mais coisas dentro? 
 
 <center> 
 "A class should have only one reason to change" 
@@ -14,7 +34,7 @@ Vamos imaginar um cenário onde temos um chat qualquer e nele temos um usuário 
 Iremos utilizar o ecossistema do Laravel, onde temos como entrada o Controller. O Controlador tem como responsabilidade:
 
 - Receber uma requisição;
-- Intermediar a validação;
+- Processar a requisição;
 - Responder o cliente.
 
 Segue o snippet:
@@ -233,6 +253,21 @@ class MessagesController extends Controller {
 ```
 
 Com isso, nosso código ficou bem mais limpo e organizado. Cada uma das responsabilidades foram distribuidas e o código do controlador foi concluido como o especificado antes de começar o código, onde você: recebe a requisição, passa a responsabilidade após a validação e responde o cliente.
+
+```
+App
+├── Http
+│   └── Controllers
+│       └── MessagesController.php
+│       Requests
+│       └── CreateMessageRequest.php
+├── Models
+│   └── Message.php
+├── Events
+│   └── ChatMessage.php
+└── Repositories
+    └── MessageRepository.php
+```
 
 
 [2. Ir para 'Open Closed Principle'](2-ocp.md)
