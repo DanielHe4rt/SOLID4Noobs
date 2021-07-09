@@ -28,8 +28,8 @@ SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software 
 - [Single Responsibility Principle](docs/1-srp.md)
 - [Open-Closed Principle](docs/2-ocp.md)
 - [Liskov Substitution Principle](docs/3-lsp.md)
-- [Interface Segregation Principle](#)
-- [Dependency Inversion Principle](#)
+- [Interface Segregation Principle](#) <img alt="Badge em breve" src="https://img.shields.io/badge/-EM%20BREVE-red">
+- [Dependency Inversion Principle](#) <img alt="Badge em breve" src="https://img.shields.io/badge/-EM%20BREVE-red">
 
   
 <!-- CONTRIBUTING -->
