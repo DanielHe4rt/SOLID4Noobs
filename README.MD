@@ -26,10 +26,10 @@ SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software 
 ## ROADMAP
 - [Introdução](docs/0-introducao.md)
 - [Single Responsibility Principle](docs/1-srp.md)
-- [Open-Closed Principle](link-segunda-parte)
-- [Liskov Substitution Principle](link-terceira-parte)
-- [Interface Segregation Principle](link-terceira-parte)
-- [Dependency Inversion Principle](link-terceira-parte)
+- [Open-Closed Principle](docs/2-ocp.md)
+- [Liskov Substitution Principle](docs/3-lsp.md)
+- [Interface Segregation Principle](#)
+- [Dependency Inversion Principle](#)
 
   
 <!-- CONTRIBUTING -->
