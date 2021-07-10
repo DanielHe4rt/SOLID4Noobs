@@ -6,7 +6,7 @@ Eu gosto de pensar que o que diferencia o Júnior do Pleno é como eles se preoc
 
 Existem várias ideias de como melhorar o seu código, tais como o KISS (Keep it Simple), DRY (Don't Repeat Yourself) e o que iremos abordar nesse tutorial: o SOLID.
 
-O SOLID é um acrônimo de regras que facilitam a vida do usuário que está LENDO o código para uma próxima manutenção, já que são praticamente leis que você segue para uma melhor legibilidade e manutenbilidade do código. Esses principios partem do ~~cuzão~~ Robert C. Martin, também conhecido como Uncle Bob.
+O SOLID é um acrônimo de regras que facilitam a vida do usuário que está LENDO o código para uma próxima manutenção, já que são praticamente leis que você segue para uma melhor legibilidade e manutenibilidade do código. Esses principios partem do ~~cuzão~~ Robert C. Martin, também conhecido como Uncle Bob.
 
 Esse acrônimo tem como parte:
 
