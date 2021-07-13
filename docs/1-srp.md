@@ -1,8 +1,8 @@
 # 1 - Single Responsibility Principle
 
-O Principio de responsabilidade única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenbilidade além de estar tudo em um único ~fucking~ arquivo. É foda né? 
+O Principio de responsabilidade única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenibilidade além de estar tudo em um único ~fucking~ arquivo. É foda né? 
 
-O SRP vem para organizar melhor esse arquivo/projeto monolito, e descentralizar o código em responsabilidades. Pense nisso como um melhor uso dos **namespaces** dentro do seu projeto.
+O SRP vem para organizar melhor esse arquivo/projeto monólito, e descentralizar o código em responsabilidades. Pense nisso como um melhor uso dos **namespaces** dentro do seu projeto.
 
 ```
 App
