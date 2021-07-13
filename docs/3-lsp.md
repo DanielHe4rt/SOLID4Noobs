@@ -245,4 +245,4 @@ Entendemos que as pré condições não devem ser maiores e as pós condições 
 Esse é um básico bem básico sobre LSP e ainda vai ser melhorado com o tempo e com os estudos.
 
 
-[4. Ir para 'Interface Segregation'](4-is.md)
+[4. Ir para 'Interface Segregation'](4-isp.md)
