@@ -1,6 +1,6 @@
 # 1 - Single Responsibility Principle
 
-O Principio de responsabilidade única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenbilidade além de estar tudo em um único ~fucking~ arquivo. É foda né? 
+O Princípio da Responsabilidade Única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenibilidade além de estar tudo em um único ~fucking~ arquivo. É foda né?
 
 O SRP vem para organizar melhor esse arquivo/projeto monolito, e descentralizar o código em responsabilidades. Pense nisso como um melhor uso dos **namespaces** dentro do seu projeto.
 
@@ -21,10 +21,10 @@ Cada uma das pastas acima tem uma responsabilidade. Sendo elas:
 - Model -> Comunicar com o banco de dados;
 - Event -> Disparar mensageria.
 
-Podemos dizer que isso está interessante? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desse código. Será que eles realmente mantem a responsabilidade ou existem mais coisas dentro? 
+Podemos dizer que isso está interessante? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desse código. Será que eles realmente mantêm a responsabilidade ou existem mais coisas dentro?
 
-<center> 
-"A class should have only one reason to change" 
+<center>
+"A class should have only one reason to change"
 
 "Uma classe deve ter apenas uma razão para mudar"
 </center>
@@ -70,7 +70,7 @@ class MessagesController extends Controller {
             ['message', '=', $message],
         ])->count();
     }
-    
+
 }
 ```
 
@@ -87,9 +87,7 @@ Agora pensando na responsabilidade que o controller deveria ter, podemos ver que
 
 Vamos começar a refatorar de cima para baixo, começando pela validação. No ecossistema Laravel, existe um jeito de validar requisições onde você isola a responsabilidade em uma classe de Request.
 
-Utilizando o comando **php artisan make:request CreateMessageRequest** você irá gerar uma classe validadora que ficará no namespace **App\Http\Requests** que terá a responsabilidade **ÚNICA** de validar sua requisição e nada mais.
-
-Se colocarmos as regras do nosso
+Utilizando o comando **php artisan make:request CreateMessageRequest** você irá gerar uma classe validadora que ficará no namespace **App\Http\Requests** que terá a responsabilidade **ÚNICA** de validar sua requisição e nada mais:
 
 ```php
 namespace App\Http\Requests;
@@ -153,13 +151,13 @@ class MessagesController extends Controller {
             ['message', '=', $message],
         ])->count();
     }
-    
+
 }
 ```
 
 Beleza, separamos a nossa validação da função principal. Agora precisamos extrair a regra de negócio para uma nova camada de abstração, que é conhecida como **Repository Pattern**. A ideia do Repository Pattern é você ter um local para trabalhar funções que se comunicam com banco de dados, envio de mensageria e mais o que você quiser. É literalmente onde você injeta suas regras de negócio.
 
-PS: O Repository Pattern não é a última camada de abstração, na realidade você pode abstrair quantas você quiser para que o seu código fique o mais legível possível. 
+PS: O Repository Pattern não é a última camada de abstração, na realidade você pode abstrair quantas você quiser para que o seu código fique o mais legível possível.
 
 ```php
 namespace App\Repositories;
@@ -171,7 +169,7 @@ class MessageRepository {
 
     private $model;
 
-    public function __construct() 
+    public function __construct()
     {
         $this->model = new Message();
     }
@@ -197,7 +195,7 @@ class MessageRepository {
 }
 ```
 
-Após nós criarmos nosso repositorio e jogarmos toda a responsabilidade devida nele, vamos ter três maneiras de colocar ele no nosso controller
+Após nós criarmos nosso repositório e jogarmos toda a responsabilidade devida nele, vamos ter três maneiras de colocar ele no nosso controller
 
 1. Instanciando a classe direto na função
 
@@ -205,12 +203,12 @@ Após nós criarmos nosso repositorio e jogarmos toda a responsabilidade devida 
     $repository = new MessageRepository();
     ```
 2. Injetando a dependência no construtor da classe e
-    
+
     ```php
     class MessagesController {
-        public $repository; 
+        public $repository;
 
-        public function __construct(MessageRepository $repository) 
+        public function __construct(MessageRepository $repository)
         {
             $this->repository = $repository;
         }
@@ -232,15 +230,15 @@ use App\Http\Requests\CreateMessageRequest;
 use App\Repositories\MessageRepository;
 
 class MessagesController extends Controller {
-    
+
     private $repository;
 
-    public function __construct(MessageRepository $repository) 
+    public function __construct(MessageRepository $repository)
     {
         $this->repository = $repository;
     }
 
-    public function postMessage(CreateMessageRequest $request) 
+    public function postMessage(CreateMessageRequest $request)
     {
         $data = $request->validated();
 
@@ -248,11 +246,11 @@ class MessagesController extends Controller {
 
         return response()->json(['message' => 'message created'], 201);
     }
-    
+
 }
 ```
 
-Com isso, nosso código ficou bem mais limpo e organizado. Cada uma das responsabilidades foram distribuidas e o código do controlador foi concluido como o especificado antes de começar o código, onde você: recebe a requisição, passa a responsabilidade após a validação e responde o cliente.
+Com isso, nosso código ficou bem mais limpo e organizado. Cada uma das responsabilidades foram distribuídas e o código do controlador foi concluído como o especificado antes de começar o código, onde você: recebe a requisição, passa a responsabilidade após a validação e responde o cliente.
 
 ```
 App

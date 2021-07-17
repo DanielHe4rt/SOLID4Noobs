@@ -1,8 +1,8 @@
 # Interface Segregation Principle
 
-Esse principio é um dos mais simples de entender, porém um dos mais dificéis de arrumar exemplos práticos, então primeiro vamos entender a teoria e depois vamo pro código.
+Esse princípio é um dos mais simples de entender, porém um dos mais difíceis de arrumar exemplos práticos, então primeiro vamos entender a teoria e depois vamos pro código.
 
-ISP se dá a segregação de Interfaces responsáveis por coisas específicas. Lembra do primeiro principio? Single Responsibility? Aqui temos o mesmo ponto, porém apenas com Interfaces.
+ISP se dá a segregação de Interfaces responsáveis por coisas específicas. Lembra do primeiro princípio? Single Responsibility? Aqui temos o mesmo ponto, porém apenas com Interfaces.
 
 Não entendeu? Vamos pro exemplo então:
 
@@ -22,7 +22,7 @@ interface OAuthContract {
 
 Se você notar, temos duas funções que em tese deveriam estar juntas. Tá errado? Não tá. Mas quando se trata de ISP, possivelmente está errado. Mas porquê exatamente?
 
-Se você observar BEM PRA CARALHO, existem duas coisas sendo feitas. Uma é essencial, a outra nem tanto. 
+Se você observar BEM PRA CARALHO, existem duas coisas sendo feitas. Uma é essencial, a outra nem tanto.
 
 Ok, vamos dar um cenário:
 
@@ -68,12 +68,12 @@ interface OAuthSocialContract {
 
 class SpotifyService implements OAuthBaseContract {
 
-    public function auth(string $code): bool 
+    public function auth(string $code): bool
     {
         return [];
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         return [];
     }
@@ -81,12 +81,12 @@ class SpotifyService implements OAuthBaseContract {
 
 class TwitchService implements OAuthBaseContract, OAuthSocialContract {
 
-    public function auth(string $code): array 
+    public function auth(string $code): array
     {
         return [];
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         return [];
     }
@@ -109,12 +109,12 @@ class TwitchService implements OAuthBaseContract, OAuthSocialContract {
 
 class GithubService implements OAuthBaseContract, OAuthSocialContract  {
 
-    public function auth(string $code): array 
+    public function auth(string $code): array
     {
         return [];
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         return [];
     }
@@ -136,10 +136,10 @@ class GithubService implements OAuthBaseContract, OAuthSocialContract  {
 }
 ```
 
-Você entendeu que para login, os três provedores estão habilitados mas para algumas interações com as redes sociais da aplicação, apenas dois dos três provedores estão implementando?
+Você entendeu que para login, os três provedores estão habilitados, mas para algumas interações com as redes sociais da aplicação, apenas dois dos três provedores estão implementando?
 
 A ideia é você não escrever código desnecessário e dizer EXATAMENTE quais são as funções necessárias dentro daquela classe. Quanto mais você segregar, mais entendível vai ficar seu código e o que ele DEVE fazer.
 
-Os principios dentro do SOLID entram praticamente em responsabilidade e legibilidade, porém o ISP te dá a melhor visão sobre. Se você leu até aqui, não esqueça de dar uma estrela no repositório =)
+Os princípios dentro do SOLID entram praticamente em responsabilidade e legibilidade, porém o ISP te dá a melhor visão sobre. Se você leu até aqui, não esqueça de dar uma estrela no repositório =)
 
 [5. Ir para 'Dependency Inversion Principle'](5-dip.md)

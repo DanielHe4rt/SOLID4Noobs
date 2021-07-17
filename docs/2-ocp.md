@@ -1,8 +1,8 @@
 # 2 - Open-closed Principle
 
-O principio aberto-fechado (nome tosco) reflete uma parte do código que precisa ser implementada, porém sem alterar o código já escrito. 
+O Princípio Aberto-Fechado (nome tosco) reflete uma parte do código que precisa ser implementada, porém sem alterar o código já escrito.
 
-A ideia é deixar o código genérico, com a aplicação de interfaces, com funções pré-definidas onde o polimosfismo vira o principal atrativo pro desenvolvimento usando esse principio.
+A ideia é deixar o código genérico, com a aplicação de interfaces, com funções pré-definidas onde o polimorfismo vira o principal atrativo pro desenvolvimento usando esse princípio.
 
 
 <center>
@@ -26,36 +26,39 @@ Route::get('auth/oauth/github', [AuthController:: class,'getGithubAuth']);
 ```php
 // app/Http/Controllers/AuthController.php
 class AuthController {
-    
+
     private $repository;
 
-    public function __construct(AuthRepository $repository) 
+    public function __construct(AuthRepository $repository)
     {
         $this->repository = $repository;
     }
 
-    public function getDiscordAuth(Request $request) 
+    public function getDiscordAuth(Request $request)
     {
         try {
-            $result = $this->repository->discordAuth($request->input('code'));return response()->json($result);
+            $result = $this->repository->discordAuth($request->input('code'));
+            return response()->json($result);
         } catch(UnauthorizedException $e) {
             return response()->json($e->getMessage(), 401);
         }
     }
 
-    public function getTwitchAuth(Request $request) 
+    public function getTwitchAuth(Request $request)
     {
         try {
-            $result = $this->repository->twitchAuth($request->input('code'));return response()->json($result);
+            $result = $this->repository->twitchAuth($request->input('code'));
+            return response()->json($result);
         } catch(UnauthorizedException $e) {
             return response()->json($e->getMessage(), 401);
         }
     }
 
-    public function getGithubAuth(Request $request) 
+    public function getGithubAuth(Request $request)
     {
         try {
-            $result = $this->repository->githubAuth($request->input('code'));return response()->json($result);
+            $result = $this->repository->githubAuth($request->input('code'));
+            return response()->json($result);
         } catch(UnauthorizedException $e) {
             return response()->json($e->getMessage(), 401);
         }
@@ -64,10 +67,9 @@ class AuthController {
 ```
 
 ```php
-
 class AuthRepository {
-    
-    public function discordAuth(string $code) 
+
+    public function discordAuth(string $code)
     {
         $service = new DiscordService();
         $authData = $service->authWithDiscord($code);
@@ -79,7 +81,7 @@ class AuthRepository {
         return true;
     }
 
-    public function twitchAuth(string $code) 
+    public function twitchAuth(string $code)
     {
         $service = new TwitchService();
         $authData = $service->authWithTwitch($code);
@@ -91,7 +93,7 @@ class AuthRepository {
         return true;
     }
 
-    public function githubAuth(string $code) 
+    public function githubAuth(string $code)
     {
         $service = new GithubService();
         $authData = $service->authWithGithub($code);
@@ -147,15 +149,15 @@ Apenas trocando essa rota, já deu pra entender que vamos deixar as coisas mais 
 ```php
 // app/Http/Controllers/AuthController.php
 class AuthController {
-    
+
     private $repository;
 
-    public function __construct(AuthRepository $repository) 
+    public function __construct(AuthRepository $repository)
     {
         $this->repository = $repository;
     }
 
-    public function getOAuth(Request $request, string $provider) 
+    public function getOAuth(Request $request, string $provider)
     {
         try {
             $result = $this->repository->authenticateOAuth($provider,$request->input('code'));
@@ -188,9 +190,9 @@ $authData = $service->authWithTwitch($code);
 $response = $authService->getTwitchUser($authData['access_token']);
 ```
 
-Podemos ver que existe um padrão nisso, porém os nomes das funções são intuitivos mas não genéricos. Agora, se nós pararmos e criassemos uma **INTERFACE**, isso mudaria completamente.
+Podemos ver que existe um padrão nisso, porém os nomes das funções são intuitivos mas não genéricos. Agora, se nós pararmos e criarmos uma **INTERFACE**, isso mudaria completamente.
 
-Vamos dar o nome da nossa interface OAuthContract com as seguintes funções: 
+Vamos dar o nome da nossa interface OAuthContract com as seguintes funções:
 
 ```php
 interface OAuthContract {
@@ -240,8 +242,8 @@ Agora, vamos refatorar o Repositório pra receber essa mudança genérica dentro
 
 ```php
 class AuthRepository {
-    
-    public function authenticateOAuth(string $provider, string $code) 
+
+    public function authenticateOAuth(string $provider, string $code)
     {
         $service = $this->getProvider($provider);
         $authData = $service->auth($code);

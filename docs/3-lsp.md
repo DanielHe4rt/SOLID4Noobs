@@ -5,7 +5,7 @@
 
 Bom, você não precisa entender essa palhaçada ai em cima. Seria legal? Seria. Mas vamos explicar o rolê usando PHP.
 
-Vimos muito código no principio anterior, onde nós deixamos o código genérico usando OCP. Porém, ficou algo muito importante pra trás. O retorno dos métodos onde implementamos a interface.
+Vimos muito código no princípio anterior, onde nós deixamos o código genérico usando OCP. Porém, ficou algo muito importante pra trás. O retorno dos métodos onde implementamos a interface.
 
 Beleza, vamos entender um pouco sobre herança:
 
@@ -25,15 +25,15 @@ class User extends Model {
 }
 ```
 
-Se você quer entender o Principio de Liskov, a primeira coisa que vai precisar é entender como desenvolver com CONTRATOS. Isso já vimos no OCP, porém vocês viram no exemplo acima que na classe pai, o retorno é um **boolean** e na classe filho o retorno é um **array** e isso quebra completamente o principio trabalhado.
+Se você quer entender o Princípio de Liskov, a primeira coisa que vai precisar é entender como desenvolver com CONTRATOS. Isso já vimos no OCP, porém vocês viram no exemplo acima que na classe pai, o retorno é um **boolean** e na classe filho o retorno é um **array** e isso quebra completamente o princípio trabalhado.
 
-Em tese, se você for sobrescrever algo, você **DEVE** alinhar os tipos de retorno. Se a função pai é do tipo X **fn parent(): x**, a função sobrescrita também deve retornar X **fn children(): x**. 
+Em tese, se você for sobrescrever algo, você **DEVE** alinhar os tipos de retorno. Se a função pai é do tipo X **fn parent(): x**, a função sobrescrita também deve retornar X **fn children(): x**.
 
 Mas até aqui não vimos nenhum contrato sendo implementado. Mas, o que ~~caralhos~~ é um contrato?
 
 Contrato é um nome dado a **Interfaces**, onde você consegue dizer quais funções serão necessárias para quem implementá-las.
 
-Agora vamos pra outro exemplo que quebra o principio de Liskov.
+Agora vamos pra outro exemplo que quebra o princípio de Liskov.
 
 Vamos olhar duas API's e seus retornos:
 
@@ -100,12 +100,12 @@ interface OAuthContract {
 
 class SpotifyService extends OAuthContract {
 
-    public function auth(string $code): bool 
+    public function auth(string $code): bool
     {
         // do stuff
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         return HTTP::get('https://api.spotify.com/v1/me');
     }
@@ -113,12 +113,12 @@ class SpotifyService extends OAuthContract {
 
 class TwitchService extends OAuthContract {
 
-    public function auth(string $code): bool 
+    public function auth(string $code): bool
     {
         // do stuff
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         return HTTP::get('https://api.twitch.tv/kraken/user');
     }
@@ -126,7 +126,7 @@ class TwitchService extends OAuthContract {
 
 ```
 
-Nosso código tá projetado para trazer um array com os objetos listados acima do snippet. Vamos implementar uma função com essa interface. 
+Nosso código tá projetado para trazer um array com os objetos listados acima do snippet. Vamos implementar uma função com essa interface.
 
 Precisamos inserir um novo usuário no nosso banco de dados, que tem como campos principais: id e email.
 
@@ -148,7 +148,7 @@ function registerUser(OAuthContract $service, $token) {
 
 Se rodarmos o código com o provider do Spotify, vai ser tudo uma maravilha até porquê ele retorna os dois campos para o usuário. Mas, no provedor da Twitch, ele retorna o campo de id como "_id".
 
-Então, lógicamente nós poderiamos criar uma validação pra entender se esses campos colidem dentro do nosso registerUser. Certo?
+Então, lógicamente nós poderíamos criar uma validação pra entender se esses campos colidem dentro do nosso registerUser. Certo?
 
 
 ```php
@@ -166,15 +166,15 @@ function registerUser(OAuthContract $service, $token) {
 
 
 registerUser(new SpotifyService, '123');
-// OK 
+// OK
 
 registerUser(new TwitchService, '123');
-// INVALIDO 
+// INVALIDO
 ```
 
-Agora eu te digo que QUEBRAMOS o principio de substituição de Liskov. Nós não deveriamos fazer validações dentro de interfaces pois ela espera sempre os MESMOS dados. Se você implementa um método em uma interface, é necessário que o RETORNO seja igual para todos os casos, de um jeito onde a classe possa ser substituida sem alteração do código.
+Agora eu te digo que QUEBRAMOS o princípio de substituição de Liskov. Nós não deveríamos fazer validações dentro de interfaces pois ela espera sempre os MESMOS dados. Se você implementa um método em uma interface, é necessário que o RETORNO seja igual para todos os casos, de um jeito onde a classe possa ser substituída sem alteração do código.
 
-Então, como poderiamos ter feito isso para não violar o principio? Se liga:
+Então, como poderíamos ter feito isso para não violar o princípio? Se liga:
 
 ```php
 interface OAuthContract {
@@ -185,12 +185,12 @@ interface OAuthContract {
 
 class SpotifyService extends OAuthContract {
 
-    public function auth(string $code): bool 
+    public function auth(string $code): bool
     {
         // do stuff
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         $result =  HTTP::get('https://api.spotify.com/v1/me');
 
@@ -203,12 +203,12 @@ class SpotifyService extends OAuthContract {
 
 class TwitchService extends OAuthContract {
 
-    public function auth(string $code): bool 
+    public function auth(string $code): bool
     {
         // do stuff
     }
 
-    public function getAuthenticatedUser(string $accessToken): array 
+    public function getAuthenticatedUser(string $accessToken): array
     {
         $result = HTTP::get('https://api.twitch.tv/kraken/user');
 
@@ -220,7 +220,7 @@ class TwitchService extends OAuthContract {
 }
 ```
 
-Agora está padronizado e nós não precisariamos fazer nenhuma validação EXTRA pra garantir casos dentro do nosso 
+Agora está padronizado e nós não precisamos fazer nenhuma validação EXTRA.
 
 ```php
 function registerUser(OAuthContract $service, $token) {
@@ -233,14 +233,14 @@ function registerUser(OAuthContract $service, $token) {
 
 
 registerUser(new SpotifyService, '123');
-// OK 
+// OK
 
 registerUser(new TwitchService, '123');
-// OK 
+// OK
 ```
 
 
-Entendemos que as pré condições não devem ser maiores e as pós condições devem ser iguais. Caso você tenha exceptions dentro do seu código, elas devem ser iguais também.
+Entendemos que as pré-condições não devem ser maiores e as pós condições devem ser iguais. Caso você tenha exceptions dentro do seu código, elas devem ser iguais também.
 
 Esse é um básico bem básico sobre LSP e ainda vai ser melhorado com o tempo e com os estudos.
 

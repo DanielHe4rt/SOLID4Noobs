@@ -1,11 +1,10 @@
 # Dependency Inversion Principle
 
+O Princípio de Inversão de Dependência tem algumas caracteristicas que poderiam assimilar à **Injeção de Dependência**, porém não é bem assim.
 
-O Principio de Inversão de Dependência tem alguns caracteristicas que poderia assimilar a **Injeção de Dependência**, porém não é bem assim.
+Todos os princípios listados até o momento são dados baseado em INTERFACES e o SOLID em si foi escrito e pensado enquanto desenvolvendo com interfaces, por ser possível deixar genérico boa parte do código e a legibilidade crescer cada vez mais.
 
-Todos os principios listados até o momento, são dados baseado em INTERFACES e o SOLID em si foi escrito e pensado enquanto desenvolvendo com interfaces, por ser possível deixar genérico boa parte do código e a legibilidade crescer cada vez mais.
-
-Agora, vamos entender sobre os dogmas do DIP: 
+Agora, vamos entender sobre os dogmas do DIP:
 
 - Módulos de alto nível não devem depender de módulos de baixo nível. Ambos devem depender de abstrações;
 - Abstrações não devem depender de detalhes. Detalhes (implementações concretas) devem depender das abstrações.
@@ -29,15 +28,15 @@ class User implements Authenticable, Messenger {
 
 }
 
-class Administrador implements Authenticable, Messenger {
+class Administrator implements Authenticable, Messenger {
 
 }
 
 class ChatMessage {
-    
+
     public $model;
 
-    public function __construct(Administrator $model, string $message) 
+    public function __construct(Administrator $model, string $message)
     {
         $this->model = $model;
     }
@@ -48,11 +47,11 @@ class ChatMessage {
 }
 ```
 
-Se pararmos para pensar, o nosso módulo de alto nível aqui nesse exemplo é o ChatMessage e ele está DEPENDENDO de um módulo de baixo nível, que é a classe Administrator. Segundo o nosso quinto principio, isso já tá erradasso pois ambos devem depender da abstração.
+Se pararmos para pensar, o nosso módulo de alto nível aqui nesse exemplo é o ChatMessage e ele está DEPENDENDO de um módulo de baixo nível, que é a classe Administrator. Segundo o nosso quinto princípio, isso já tá erradasso pois ambos devem depender da abstração.
 
 "Mas como assim? Injetei a dependência e ele FUNCIONA!!!! Né?"
 
-Funciona, mas você esqueceu que você deve mandar mensagens pelo usuário também, né? Então seria interessante INVERTER a dependência para que possa ser usado baseado nas abstrações.
+Funciona, mas você esqueceu que você deve mandar mensagens para o usuário `User` também, né? Então seria interessante INVERTER a dependência para que possa ser usado baseado nas abstrações.
 
 ```php
 interface Authenticable {
@@ -69,15 +68,15 @@ class User implements Authenticable, Messenger {
 
 }
 
-class Administrador implements Authenticable, Messenger {
+class Administrator implements Authenticable, Messenger {
 
 }
 
 class ChatMessage {
-    
+
     public $model;
 
-    public function __construct(Authenticable $model, string $message) 
+    public function __construct(Authenticable $model, string $message)
     {
         $this->model = $model;
     }
