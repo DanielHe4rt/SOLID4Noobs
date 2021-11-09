@@ -255,7 +255,6 @@ Com isso, nosso código ficou bem mais limpo e organizado. Cada uma das responsa
 ```
 App
 ├── Http
-├── Http
 │   └── Controllers
 │       └── MessagesController.php
 │       Requests

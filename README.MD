@@ -1,58 +1,21 @@
 <!-- Logo 4noobs -->
 
-<p align="center">
+<p style="text-align: center">
   <a href="https://github.com/he4rt/4noobs" target="_blank">
-    <img src=".github/header_4noobs.svg">
+    <img src=".github/header_4noobs.svg" alt="Repository Header">
   </a>
 </p>
 
 <!-- Title -->
 
-<p align="center">
-  <h2 align="center">SOLID4Noobs</h2>
+<div style="text-align: center">
+  <h2 style="text-align: center">SOLID4Noobs</h2>
+  <img src=".github/roxo.jpg" alt="Imagem da linguagem">
+</div>
 
-  <h1 align="center"><img src=".github/roxo.jpg" alt="Imagem da linguagem"></h1>
-  
-  
-</p>
-    
- <!-- ABOUT THE PROJECT -->
+<div style="text-align: center">
 
-## Sobre o Projeto
-SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software para que ele seja flexível, legível e de fácil manutenção.
+  <h3> Escolha seu idioma / Choose your language </h3>
 
-<!-- ROADMAP OF PROJECT -->
-
-## ROADMAP
-- [Introdução](docs/0-introducao.md)
-- [Single Responsibility Principle](docs/1-srp.md)
-- [Open-Closed Principle](docs/2-ocp.md)
-- [Liskov Substitution Principle](docs/3-lsp.md)
-- [Interface Segregation Principle](docs/4-isp.md)
-- [Dependency Inversion Principle](docs/5-dip.md)
-
-  
-<!-- CONTRIBUTING -->
-
-## Como Contribuir
-
-Contribuições fazem com que a comunidade open source seja um lugar incrível para aprender, inspirar e criar. Todas contribuições
-são **extremamente apreciadas**
-
-1. Realize um Fork do projeto
-2. Crie um branch com a nova feature (`git checkout -b feature/featureBraba`)
-3. Realize o Commit (`git commit -m 'Adicionado conteudo brabo'`)
-4. Realize o Push no Branch (`git push origin feature/featureBraba`)
-5. Abra um Pull Request
-
-## Autores
-
-- **Daniel Reis** - Back-end Engineer and He4rt Developers Leader - [@danielhe4rt](https://twitter.com/danielhe4rt)
-
----
-
-<p align="center">
-  <a href="https://github.com/he4rt/4noobs" target="_blank">
-    <img src=".github/footer_4noobs.svg" width="380">
-  </a>
-</p>
+  [🇧🇷 Português](/pt_BR/README.MD) [🇺🇸 English](/en/README.MD)
+</div>
