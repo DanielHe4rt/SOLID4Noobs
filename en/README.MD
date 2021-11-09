@@ -32,7 +32,7 @@ SOLID is an acronym for 5 rules that make software development easier and flexib
 
 ## How to Contribute
 
-Contributions makes that the open source community be a awesome place to learn, inspire and create. All the contributions
+Contributions makes that the open source community be an awesome place to learn, inspire and create. All the contributions
 are **extremely appreciated**.
 
 1. Fork this project
