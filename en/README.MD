@@ -37,7 +37,7 @@ are **extremely appreciated**.
 
 1. Fork this project
 2. Create a new branch with the chore (`git checkout -b chore/improving-srp`)
-3. Make a new commit (`git commit -m 'the most insame commit message'`)
+3. Make a new commit (`git commit -m 'the most insane commit message'`)
 4. Push it into the branch (`git push origin chore/improving-srp`)
 5. Open a Pull Request
 
