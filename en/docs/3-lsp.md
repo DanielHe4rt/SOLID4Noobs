@@ -99,7 +99,7 @@ interface OAuthContract {
     public function getAuthenticatedUser(string $accessToken): array;
 }
 
-class SpotifyService extends OAuthContract {
+class SpotifyService implements OAuthContract {
 
     public function auth(string $code): bool
     {
@@ -112,7 +112,7 @@ class SpotifyService extends OAuthContract {
     }
 }
 
-class TwitchService extends OAuthContract {
+class TwitchService implements OAuthContract {
 
     public function auth(string $code): bool
     {
@@ -183,7 +183,7 @@ interface OAuthContract {
     public function getAuthenticatedUser(string $accessToken): array;
 }
 
-class SpotifyService extends OAuthContract {
+class SpotifyService implements OAuthContract {
 
     public function auth(string $code): bool
     {
@@ -201,7 +201,7 @@ class SpotifyService extends OAuthContract {
     }
 }
 
-class TwitchService extends OAuthContract {
+class TwitchService implements OAuthContract {
 
     public function auth(string $code): bool
     {
