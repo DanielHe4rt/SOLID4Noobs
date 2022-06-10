@@ -55,7 +55,7 @@ class MessagesController extends Controller {
         ]);
 
         if ($this->getUserSpecificMessagesCount($data['message'])) {
-            Log::alert('[User Alert] Flooding', $data)
+            Log::alert('[User Alert] Flooding', $data);
         }
 
         $model = Message::create($request->all());
