@@ -1,7 +1,6 @@
 # 1 - Single Responsibility Principle
 
-The 'Single Responsibility Principle' has the idea of the software should be partitioned in responsibility block inside the project ecossystem. When we see the famous "dirty code", where you stick all the code inside a single file or class, you'll always have that lazyness to refactoring it because the code is not readable/mainantanable, besides that it is in a whole ~fucking~ file or class. There is fuck, isn't?
-
+The 'Single Responsibility Principle' has the idea of the software should be partitioned in responsibility block inside the project ecossystem. When we see the famous "dirty code", where you stick all the code inside a single file or class, you'll always have that lazyness to refactoring it because the code is not readable/mainantanable, besides that it is in a whole ~fucking~ file or class.
 
 SRP came to organize better these monolith class/functions, and descentralize the code responsibilities. Think in that as a better use of **namespaces** inside your project.
 
@@ -47,11 +46,14 @@ namespace App\Http\Controllers;
 
 use DB;
 use Illuminate\Foundation\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Events\ChatMessage;
 
-class MessagesController extends Controller {
+class MessagesController extends Controller 
+{
 
-    public function postMessage(Request $request) {
+    public function postMessage(Request $request): JsonResponse
+    {
         $this->validate($request, [
             'user_id' => 'required|exists:users,id',
             'message' => 'required'
@@ -67,7 +69,8 @@ class MessagesController extends Controller {
         return response()->json(['message' => 'message created'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -85,7 +88,6 @@ Let's list what the can see on the MessagesController snippet
 - Create a new register of the message on Database;
 - Broadcast the message to some channel;
 - Return a message to the client.
-
 
 Now thinking in the responsibility that controller should have, we can see that was a little bit far from that and it was not expected.
 
@@ -105,7 +107,7 @@ class CreateMessageRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return true;
     }
@@ -115,7 +117,7 @@ class CreateMessageRequest extends FormRequest
      *
      * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             'user_id' => 'required|exists:users,id',
@@ -133,10 +135,13 @@ namespace App\Http\Controllers;
 use DB;
 use App\Http\Requests\CreateMessageRequest;
 use App\Events\ChatMessage;
+use Illuminate\Http\JsonResponse;
 
-class MessagesController extends Controller {
+class MessagesController extends Controller 
+{
 
-    public function postMessage(CreateMessageRequest $request) {
+    public function postMessage(CreateMessageRequest $request): JsonResponse
+    {
         $data = $request->validated();
 
         if ($this->getUserSpecificMessagesCount($data['message'])) {
@@ -149,7 +154,8 @@ class MessagesController extends Controller {
         return response()->json(['message' => 'message created'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -159,9 +165,9 @@ class MessagesController extends Controller {
 }
 ```
 
-Alright, we separated the validation of our main function. Now we have to extract the business rule to a new abstractiong layer, that is known as **Repository Pattern**. The idea of Repository Pattern is you have a place to work with methods/classes that communicates with database, mailing and whatever else you need it. It's literally where you put all the business logic (if you prefer).
+Alright, we separated the validation of our main function. Now we have to extract the business rule to a new abstractiong layer, that is known as **Service Pattern**. The idea of Service Pattern is you have a place to work with methods/classes that feeds your business logic, mailing and whatever else you need it. 
 
-PS: The Repository Pattern is not the last abstractiong layer, in the reality you can abstract how many layers you want for your code being more readable as possible.
+PS: The Service Pattern is not the last abstractiong layer, in the reality you can abstract how many layers you want for your code being more readable as possible.
 
 ```php
 namespace App\Repositories;
@@ -169,28 +175,27 @@ namespace App\Repositories;
 use App\Models\Message;
 use App\Events\ChatMessage;
 
-class MessageRepository {
+class MessagesService 
+{
 
-    private $model;
-
-    public function __construct()
+    public function __construct(private readonly Message $model)
     {
-        $this->model = new Message();
     }
 
-    public function create(array $payload): bool
+    public function create(array $payload): Message
     {
         if ($this->checkFloodPossibility($data['message'])) {
             Log::alert('[User Alert] Flooding', $data)
         }
 
-        $model = Message::create($payload);
+        $message = Message::create($payload);
         broadcast(new ChatMessage($model));
 
-        return true;
+        return $message;
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -198,29 +203,27 @@ class MessageRepository {
     }
 }
 ```
-After we create our repository and throw all the due responsibility there, we'll have three ways to invoke it on our controller:
+After we create our service and throw all the due responsibility there, we'll have three ways to invoke it on our controller:
 
 1. Instantiate directly inside the function
 
     ``` php
-    $repository = new MessageRepository();
+    $repository = new MessagesService();
     ```
 2. Injecting the dependency on the class constructor 
 
-    ```php
-    class MessagesController {
-        public $repository;
-
-        public function __construct(MessageRepository $repository)
-        {
-            $this->repository = $repository;
-        }
-    }
-    ```
-3. Using Laravel Containers
+```php
+class MessagesController 
+{
+	public function __construct(public readonly MessagesService $service)
+	{
+	}
+}
+```
+1. Using Laravel Containers
 
     ```php
-    $repository = app(MessageRepository::class)->create();
+    $repository = app(MessagesService::class)->create();
     ```
 
 In our code, we're going to use Dependency Injection so we can have a better view of the code.
@@ -233,20 +236,17 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateMessageRequest;
 use App\Repositories\MessageRepository;
 
-class MessagesController extends Controller {
-
-    private $repository;
-
-    public function __construct(MessageRepository $repository)
+class MessagesController extends Controller 
+{
+    public function __construct(private readonly MessagesService $service)
     {
-        $this->repository = $repository;
     }
 
-    public function postMessage(CreateMessageRequest $request)
-    {
-        $data = $request->validated();
-
-        $this->repository->create($data);
+    public function postMessage(CreateMessageRequest $request): JsonResponse
+    {   
+        $this->service->create(
+	        $request->validated()
+        );
 
         return response()->json(['message' => 'message created'], 201);
     }
@@ -268,8 +268,8 @@ App
 │   └── Message.php
 ├── Events
 │   └── ChatMessage.php
-└── Repositories
-    └── MessageRepository.php
+└── Services
+    └── MessageService.php
 ```
 
 
