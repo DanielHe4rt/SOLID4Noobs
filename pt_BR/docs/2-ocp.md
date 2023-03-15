@@ -177,17 +177,17 @@ Agora vamos analisar as funções do serviço que estão sendo chamadas no nosso
 // GithubService
 $service = new GithubService();
 $authData = $service->authWithGithub($code);
-$response = $authService->getGithubUser($authData['access_token']);
+$response = $service->getGithubUser($authData['access_token']);
 
 // DiscordService
 $service = new DiscordService();
 $authData = $service->authWithDiscord($code);
-$response = $authService->getDiscordUser($authData['access_token']);
+$response = $service->getDiscordUser($authData['access_token']);
 
 // TwitchService
 $service = new TwitchService();
 $authData = $service->authWithTwitch($code);
-$response = $authService->getTwitchUser($authData['access_token']);
+$response = $service->getTwitchUser($authData['access_token']);
 ```
 
 Podemos ver que existe um padrão nisso, porém os nomes das funções são intuitivos mas não genéricos. Agora, se nós pararmos e criarmos uma **INTERFACE**, isso mudaria completamente.
