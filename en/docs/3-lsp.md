@@ -169,7 +169,7 @@ registerUser(new SpotifyService, '123');
 // OK
 
 registerUser(new TwitchService, '123');
-// INVALIDO
+// INVALID
 ```
 
 Now, and if I say that we BROKE the Liskov Principle? We shouldn't make validations inside the interfaces about the return of the methods because the structure expect should be always the same (is LITERALY a CONTRACT). If you implement a method in a interface, it's necessary that the return should be equal to all cases, in a way that the class can be replaced without change the code.
@@ -219,8 +219,7 @@ class TwitchService implements OAuthContract {
     }
 }
 ```
-
-Agora está padronizado e nós não precisamos fazer nenhuma validação EXTRA.
+Now that everything is standardized we don't need to make any extra validation.
 
 ```php
 function registerUser(OAuthContract $service, string $token) {

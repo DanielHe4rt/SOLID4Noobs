@@ -128,7 +128,7 @@ class AuthRepository {
             return $auth;
         }
 
-        throw new \Exception('deu ruim');
+        throw new \Exception('Something went wrong.');
     }
 
 }
