@@ -23,15 +23,15 @@ interface OAuthContract {
 
 If you notice, we have two functions that in theory should be together. It's wrong? Not at all. But when is about ISP, probably it's wrong. But why exactaly?
 
-If you look again, you'll see two thinkgs being done. One is essential, the other not so much.
+If you look again, you'll see two things being done. One is essential, the other not so much.
 
 Let's build a scenario for that:
 
 - Our chatting software has a possibility to Sign In with Spotify, Twitch and Github;
-- But you can leave messages for when the user register, and will should be able to search for Users from Twitch and Github;
+- But you can leave messages for when the user gets registered, and you should be able to search for Users from Twitch and Github;
 - You'll be able to follow these people social networks such Twitch or Github.
 
-How we will segregate those interfaces? Look:
+How can we segregate those interfaces? Look:
 
 ```php
 interface OAuthBaseContract {
@@ -48,7 +48,7 @@ interface OAuthSocialContract {
     public function unfollowUser(string $accessToken, $userId): array;
 }
 ```
-We segregate the functions for each responsibility. How our application should look like after that?
+We segregate the functions for each responsibility. What should our application look like after that?
 
 ```php
 interface OAuthBaseContract {
@@ -135,10 +135,12 @@ class GithubService implements OAuthBaseContract, OAuthSocialContract  {
 }
 ```
 
-You understand that for Login, all providers needs to be able to ran it, but for some social network interactions, only 2/3 needs to be implemented? 
+You understand that for Login, all providers need to be able to run it, but for some social network interactions, only 2/3 needs to be implemented? 
 
-The idea is to you not write not necessarily code and tell EXACTLY which functions needs to be implement inside that class. How much more you segregate, more understandable will be your code and what is happening there.
+The idea is to not write unnecessary code and tell EXACTLY which functions need to be implemented inside that class. The more you segregate, the more understandable and maintainable the code will be.
 
-The principles on SOLID goes practically in responsibilities and legibility, but ISP gives you the a better vision about. If you read until here, please consider leave a Star on the repository =)
+The principles of SOLID are practical in terms of responsibilities and legibility, but ISP provides a better understanding.
+
+If you read until here, please consider leave a Star on the repository =)
 
 [5. Go to 'Dependency Inversion Principle'](5-dip.md)
