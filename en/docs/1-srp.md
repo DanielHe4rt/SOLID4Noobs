@@ -24,8 +24,6 @@ Each of the folders above has a responsibility, being them:
 We can say that is already good? Maybe yes, maybe not. After all, we don't know what is written inside these files.
 Does they really maintain the responsibility or exists more stuff inside?
 
-Podemos dizer que isso está interessante? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desse código. Será que eles realmente mantêm a responsabilidade ou existem mais coisas dentro?
-
 <p class="text-align: center;">
     "A class should have only one reason to change"
 </p>
