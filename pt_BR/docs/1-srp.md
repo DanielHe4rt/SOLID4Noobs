@@ -37,14 +37,14 @@ Iremos utilizar o ecossistema do Laravel, onde temos como entrada o Controller. 
 - Processar a requisição;
 - Responder o cliente.
 
-Segue o snippet:
-
 ```php
 namespace App\Http\Controllers;
 
 use DB;
 use Illuminate\Foundation\Http\Request;
 use App\Events\ChatMessage;
+use Illuminate\Support\Facades\Log;
+use App\Models\Message;
 
 class MessagesController extends Controller {
 
@@ -54,7 +54,9 @@ class MessagesController extends Controller {
             'message' => 'required'
         ]);
 
-        if ($this->getUserSpecificMessagesCount($data['message'])) {
+        $data = $request->all(); // Changed from $request->validated() to $request->all() to match the original validation flow before FormRequest.
+
+        if ($this->getUserSpecificMessagesCount($data['user_id'], $data['message']) >= 5) {
             Log::alert('[User Alert] Flooding', $data);
         }
 
@@ -64,7 +66,7 @@ class MessagesController extends Controller {
         return response()->json(['message' => 'message created'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -101,7 +103,7 @@ class CreateMessageRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return true;
     }
@@ -111,7 +113,7 @@ class CreateMessageRequest extends FormRequest
      *
      * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             'user_id' => 'required|exists:users,id',
@@ -135,8 +137,8 @@ class MessagesController extends Controller {
     public function postMessage(CreateMessageRequest $request) {
         $data = $request->validated();
 
-        if ($this->getUserSpecificMessagesCount($data['message'])) {
-            Log::alert('[User Alert] Flooding', $data)
+        if ($this->getUserSpecificMessagesCount($data['user_id'], $data['message']) >= 5) {
+            Log::alert('[User Alert] Flooding', $data);
         }
 
         $model = Message::create($data);
@@ -145,7 +147,7 @@ class MessagesController extends Controller {
         return response()->json(['message' => 'message created'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -176,8 +178,8 @@ class MessageRepository {
 
     public function create(array $payload): bool
     {
-        if ($this->checkFloodPossibility($data['message'])) {
-            Log::alert('[User Alert] Flooding', $data)
+        if ($this->checkFloodPossibility($payload['user_id'], $payload['message'])) {
+            Log::alert('[User Alert] Flooding', $payload);
         }
 
         $model = Message::create($payload);
@@ -186,7 +188,7 @@ class MessageRepository {
         return true;
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message) {
+    public function getUserSpecificMessagesCount(int $userId, string $message): int {
         return DB::table('user_messages')->where([
             ['user_id', '=', $userId],
             ['message', '=', $message],
@@ -238,7 +240,7 @@ class MessagesController extends Controller {
         $this->repository = $repository;
     }
 
-    public function postMessage(CreateMessageRequest $request)
+    public function postMessage(CreateMessageRequest $request): JsonResponse
     {
         $data = $request->validated();
 
@@ -268,5 +270,9 @@ App
 ```
 
 
-[2. Ir para 'Open Closed Principle'](2-ocp.md)
+---
+
+## Navegação
+
+[← Introdução](0-introducao.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)
 

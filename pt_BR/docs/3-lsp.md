@@ -13,13 +13,13 @@ Quando você estende uma classe pai para uma classe filho, você herda todos os 
 
 ```php
 class Model {
-    public function store() {
+    public function store(): bool {
         return true;
     }
 }
 
 class User extends Model {
-    public function store() {
+    public function store(): array { // ❌ Erro fatal: O tipo de retorno deve ser bool
         return ['success'];
     }
 }
@@ -245,4 +245,8 @@ Entendemos que as pré-condições não devem ser maiores e as pós condições 
 Esse é um básico bem básico sobre LSP e ainda vai ser melhorado com o tempo e com os estudos.
 
 
-[4. Ir para 'Interface Segregation'](4-isp.md)
+---
+
+## Navegação
+
+[← Introdução](0-introducao.md) • [1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)
