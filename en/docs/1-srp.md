@@ -46,6 +46,7 @@ use DB;
 use Illuminate\Foundation\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Events\ChatMessage;
+use Illuminate\Support\Facades\Log;
 
 class MessagesController extends Controller 
 {
@@ -57,8 +58,9 @@ class MessagesController extends Controller
             'message' => 'required'
         ]);
 
+        // $data is obtained from validated request below
         if ($this->getUserSpecificMessagesCount($data['message']) >= 5) {
-            Log::alert('[User Alert] Flooding', $data)
+            Log::alert('[User Alert] Flooding', $data);
         }
 
         $model = Message::create($request->all());
@@ -142,8 +144,8 @@ class MessagesController extends Controller
     {
         $data = $request->validated();
 
-        if ($this->getUserSpecificMessagesCount($data['message'])) {
-            Log::alert('[User Alert] Flooding', $data)
+        if ($this->getUserSpecificMessagesCount($data['message']) >= 5) {
+            Log::alert('[User Alert] Flooding', $data);
         }
 
         $model = Message::create($data);
@@ -271,4 +273,8 @@ App
 ```
 
 
-[2. Go to 'Open Closed Principle'](2-ocp.md)
+---
+
+## Navigation
+
+[← Introduction](0-introduction.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)

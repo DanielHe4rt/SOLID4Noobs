@@ -75,7 +75,7 @@ class AuthRepository {
         $service = new DiscordService();
         $authData = $service->authWithDiscord($code);
 
-        $response = $authService->getDiscordUser($authData['access_token']);
+        $response = $service->getDiscordUser($authData['access_token']);
         $authUser = $this->findOrCreate('discord',$response);
 
         Auth::user($authUser);
@@ -87,7 +87,7 @@ class AuthRepository {
         $service = new TwitchService();
         $authData = $service->authWithTwitch($code);
 
-        $response = $authService->getTwitchUser($authData['access_token']);
+        $response = $service->getTwitchUser($authData['access_token']);
         $authUser = $this->findOrCreate('twitch',$response);
 
         Auth::user($authUser);
@@ -99,7 +99,7 @@ class AuthRepository {
         $service = new GithubService();
         $authData = $service->authWithGithub($code);
 
-        $response = $authService->getGithubUser($authData['access_token']);
+        $response = $service->getGithubUser($authData['access_token']);
         $authUser = $this->findOrCreate('github',$response);
 
         Auth::user($authUser);
@@ -145,7 +145,7 @@ Let's summarize these three routes in one, and it should look like this:
 Route::get('auth/oauth/{provider}', [AuthController:: class, 'getOAuth']);
 ```
 
-Only changing this route prefix, you can already understant that we're going to make things more generic having in sight that has a pattern. Now we're going to change our controller to support these changes:
+Only changing this route prefix, you can already understand that we're going to make things more generic having in sight that there is a pattern. Now we're going to change our controller to support these changes:
 
 ```php
 // app/Http/Controllers/AuthController.php
@@ -251,7 +251,7 @@ class AuthRepository {
         $service = $this->getProvider($provider);
         $authData = $service->auth($code);
 
-        $response = $authService->getAuthenticatedUser($authData['access_token']);
+        $response = $service->getAuthenticatedUser($authData['access_token']);
         $authUser = $this->findOrCreate($provider, $response);
 
         Auth::user($authUser);
@@ -280,7 +280,7 @@ class AuthRepository {
             return $auth;
         }
 
-        throw new \Exception('Something Wrong');
+        throw new \Exception('Something went wrong');
     }
 
     public function getProvider(string $provider): OAuthContract
@@ -288,7 +288,8 @@ class AuthRepository {
         return match($provider) {
             'discord' => new DiscordService(),
             'twitch' => new TwitchService(),
-            'github' => new GithubService()
+            'github' => new GithubService(),
+            default => throw new \InvalidArgumentException("Unsupported OAuth provider: {$provider}")
         };
     }
 }
@@ -298,4 +299,8 @@ Your software is opened to extend more OAuth Services, but closed for modificati
 
 If your Services are working, you'll not need to modify it. But in the case that you want to implement a new  OAuth provider, you'll need to create a new Service Class like **GoogleService** and implement the **OAuthInterface** and add it to the match expression on the function **getProvider()** inside your repository and that's it. Open for extension but close for modification.
 
-[3. Go to 'Liskov's Substitution Principle'](3-lsp.md)
+---
+
+## Navigation
+
+[← Introduction](0-introduction.md) • [1 – Single Responsibility Principle](1-srp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)
