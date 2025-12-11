@@ -6,7 +6,7 @@ Eu gosto de pensar que o que diferencia o Júnior do Pleno é como eles se preoc
 
 Existem várias ideias de como melhorar o seu código, tais como o KISS (Keep it Simple), DRY (Don't Repeat Yourself) e o que iremos abordar nesse tutorial: o SOLID.
 
-O SOLID é um acrônimo de regras que facilitam a vida do usuário que está LENDO o código para uma próxima manutenção, já que são praticamente leis que você segue para uma melhor legibilidade e manutenibilidade do código. Esses princípios partem do ~~cuzão~~ Robert C. Martin, também conhecido como Uncle Bob.
+O SOLID é um acrônimo de regras que facilitam a vida do usuário que está LENDO o código para uma próxima manutenção, já que são praticamente leis que você segue para uma melhor legibilidade e manutenibilidade do código. Esses princípios foram compilados por Robert C. Martin, também conhecido como Uncle Bob.
 
 Esse acrônimo tem como parte:
 
@@ -16,7 +16,10 @@ Esse acrônimo tem como parte:
 * Interface Segregation Principle
 * Dependency Inversion Principle
 
-
 Iremos utilizar um projeto bem simples representando um CHAT da Twitch para explicar todos os princípios.
 
-[1. Ir para 'Single Responsibility Principle'](1-srp.md)
+---
+
+## Navegação
+
+[1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)

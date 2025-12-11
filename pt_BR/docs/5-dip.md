@@ -19,9 +19,9 @@ interface Authenticable {
 }
 
 interface Messenger {
-    public function prepareMessage(): string;
+    public function prepareMessage(string $message): string;
 
-    public function sendMessage(): bool;
+    public function sendMessage(string $message): bool;
 }
 
 class User implements Authenticable, Messenger {
@@ -36,13 +36,15 @@ class ChatMessage {
 
     public $model;
 
-    public function __construct(Administrator $model, string $message)
-    {
-        $this->model = $model;
-    }
+    public function __construct(
+        private readonly Administrator $model,
+        private readonly string $message
+    ) {}
 
-    public function handle() {
-        // Finge que aqui manda mensagem
+    public function handle(): bool
+    {
+        $prepared = $this->model->prepareMessage($this->message);
+        return $this->model->sendMessage($prepared);
     }
 }
 ```
@@ -59,9 +61,9 @@ interface Authenticable {
 }
 
 interface Messenger {
-    public function prepareMessage(): string;
+    public function prepareMessage(string $message): string;
 
-    public function sendMessage(): bool;
+    public function sendMessage(string $message): bool;
 }
 
 class User implements Authenticable, Messenger {
@@ -76,21 +78,34 @@ class ChatMessage {
 
     public $model;
 
-    public function __construct(Authenticable $model, string $message)
-    {
-        $this->model = $model;
-    }
+    public function __construct(
+        private readonly Authenticable $model,
+        private readonly string $message
+    ) {}
 
-    public function handle() {
-        // Finge que aqui manda mensagem
+    public function handle(): bool
+    {
+        $prepared = $this->model->prepareMessage($this->message);
+        return $this->model->sendMessage($prepared);
     }
 }
 ```
 
 Nossa dependência agora está invertida. Não precisamos nos preocupar em fazer N classes para o mesmo processo, sendo que agora é tudo mantido em abstrações.
 
+**Módulo de alto nível** (ChatMessage) depende de **abstração** (Authenticable)  
+**Módulos de baixo nível** (User, Administrator) dependem de **abstração** (Authenticable)
+
+Isso é o que significa "inversão": em vez do alto nível depender do baixo nível, ambos dependem da abstração.
+
 E é isso! Fim do SOLID4Noobs!
 
 Espero que você tenha curtido o conteúdo e se você quiser ver mais coisas como essa sendo aplicação em tempo real, considere se [inscrever no meu canal da twitch!](https://twitch.tv/danielhe4rt)
 
 Até a próxima! =)
+
+---
+
+## Navegação
+
+[← Introdução](0-introducao.md) • [1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md)

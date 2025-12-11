@@ -1,8 +1,8 @@
 # Dependency Inversion Principle
 
-The Dependency Inversion Principle has a few characteristics that is pretty similar to **Dependency Injection**, but it's not like that at all.
+The Dependency Inversion Principle is often confused with **Dependency Injection**, but they are related yet distinct concepts. DIP is a design principle, while DI is an implementation technique.
 
-All the principles listed until the moment are based in INTERFACES and SOLID itself was written thinking about developing with Interfaces, for being possible to let most part of the code generic and legible.
+All the principles listed until now are based on INTERFACES and SOLID itself was written thinking about developing with Interfaces, making it possible to let most parts of the code be generic and legible.
 
 Now, let's understand about DIP dogmas:
 
@@ -19,9 +19,9 @@ interface Authenticable {
 }
 
 interface Messenger {
-    public function prepareMessage(): string;
+    public function prepareMessage(string $message): string;
 
-    public function sendMessage(): bool;
+    public function sendMessage(string $message): bool;
 }
 
 class User implements Authenticable, Messenger {
@@ -36,13 +36,15 @@ class ChatMessage {
 
     public $model;
 
-    public function __construct(Administrator $model, string $message)
-    {
-        $this->model = $model;
-    }
+    public function __construct(
+        private readonly Administrator $model,
+        private readonly string $message
+    ) {}
 
-    public function handle() {
-        // pretends that this method handle messages stuff
+    public function handle(): bool
+    {
+        $prepared = $this->model->prepareMessage($this->message);
+        return $this->model->sendMessage($prepared);
     }
 }
 ```
@@ -76,21 +78,34 @@ class ChatMessage {
 
     public $model;
 
-    public function __construct(Authenticable $model, string $message)
-    {
-        $this->model = $model;
-    }
+    public function __construct(
+        private readonly Authenticable $model,
+        private readonly string $message
+    ) {}
 
-    public function handle() {
-        // pretends that this method handle messages stuff
+    public function handle(): bool
+    {
+        $prepared = $this->model->prepareMessage($this->message);
+        return $this->model->sendMessage($prepared);
     }
 }
 ```
 
-Our dependency is now inverted. We don't need to worry about making N classes the same process, because everything is maintained in abstractions.
+Our dependency is now inverted. We don't need to worry about making N classes with the same process, because everything is maintained through abstractions.
 
-And that 's it! We finished the SOLID4Noobs!
+**High-level module** (ChatMessage) depends on **abstraction** (Authenticable)  
+**Low-level modules** (User, Administrator) depend on **abstraction** (Authenticable)
 
-I hope you liked this article/repository and if you want to see more content relate to Laravel, consider [follow me on Twitch](https://twitch.tv/danielhe4rt) and on [Twitter](https://twitter.com/danielhe4rt)
+This is what "inversion" means: instead of high-level depending on low-level, both depend on abstraction.
+
+And that's it! We finished the SOLID4Noobs!
+
+I hope you liked this article/repository and if you want to see more content related to Laravel, consider [following me on Twitch](https://twitch.tv/danielhe4rt) and on [Twitter](https://twitter.com/danielhe4rt)
 
 See ya! =)
+
+---
+
+## Navigation
+
+[← Introduction](0-introduction.md) • [1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md)

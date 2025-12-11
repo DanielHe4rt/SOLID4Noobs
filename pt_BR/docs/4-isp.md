@@ -12,17 +12,17 @@ interface OAuthContract {
 
     public function getAuthenticatedUser(string $accessToken): array;
 
-    public function findUserById(string $accessToken, $userId): array;
+    public function findUserById(string $accessToken, string $userId): array;
 
-    public function followUser(string $accessToken, $userId): array;
+    public function followUser(string $accessToken, string $userId): array;
 
-    public function unfollowUser(string $accessToken, $userId): array;
+    public function unfollowUser(string $accessToken, string $userId): array;
 }
 ```
 
 Se você notar, temos duas funções que em tese deveriam estar juntas. Tá errado? Não tá. Mas quando se trata de ISP, possivelmente está errado. Mas porquê exatamente?
 
-Se você observar BEM PRA CARALHO, existem duas coisas sendo feitas. Uma é essencial, a outra nem tanto.
+Se você observar bem, existem duas coisas sendo feitas. Uma é essencial, a outra nem tanto.
 
 Ok, vamos dar um cenário:
 
@@ -41,11 +41,11 @@ interface OAuthBaseContract {
 }
 
 interface OAuthSocialContract {
-    public function findUserById(string $accessToken, $userId): array;
+    public function findUserById(string $accessToken, string $userId): array;
 
-    public function followUser(string $accessToken, $userId): array;
+    public function followUser(string $accessToken, string $userId): array;
 
-    public function unfollowUser(string $accessToken, $userId): array;
+    public function unfollowUser(string $accessToken, string $userId): array;
 }
 ```
 
@@ -59,18 +59,19 @@ interface OAuthBaseContract {
 }
 
 interface OAuthSocialContract {
-    public function findUserById(string $accessToken, $userId): array;
+    public function findUserById(string $accessToken, string $userId): array;
 
-    public function followUser(string $accessToken, $userId): array;
+    public function followUser(string $accessToken, string $userId): array;
 
-    public function unfollowUser(string $accessToken, $userId): array;
+    public function unfollowUser(string $accessToken, string $userId): array;
 }
 
 class SpotifyService implements OAuthBaseContract {
 
     public function auth(string $code): bool
     {
-        return [];
+        // Autentica com API Spotify
+        return true;
     }
 
     public function getAuthenticatedUser(string $accessToken): array
@@ -81,14 +82,16 @@ class SpotifyService implements OAuthBaseContract {
 
 class TwitchService implements OAuthBaseContract, OAuthSocialContract {
 
-    public function auth(string $code): array
+    public function auth(string $code): bool
     {
-        return [];
+        // Autentica com API Twitch
+        return true;
     }
 
     public function getAuthenticatedUser(string $accessToken): array
     {
-        return [];
+        // Retorna dados do usuário Twitch
+        return ['id' => '456', 'email' => 'user@twitch.tv'];
     }
 
     public function findUserById(string $accessToken, $userId): array
@@ -96,42 +99,49 @@ class TwitchService implements OAuthBaseContract, OAuthSocialContract {
         return [];
     }
 
-    public function followUser(string $accessToken, $userId): array
+    public function followUser(string $accessToken, string $userId): array
     {
-        return [];
+        // Segue usuário na Twitch
+        return ['success' => true];
     }
 
-    public function unfollowUser(string $accessToken, $userId): array
+    public function unfollowUser(string $accessToken, string $userId): array
     {
-        return [];
+        // Para de seguir usuário na Twitch
+        return ['success' => true];
     }
 }
 
 class GithubService implements OAuthBaseContract, OAuthSocialContract  {
 
-    public function auth(string $code): array
+    public function auth(string $code): bool
     {
-        return [];
+        // Autentica com API Github
+        return true;
     }
 
     public function getAuthenticatedUser(string $accessToken): array
     {
-        return [];
+        // Retorna dados do usuário Github
+        return ['id' => '789', 'email' => 'user@github.com'];
     }
 
-    public function findUserById(string $accessToken, $userId): array
+    public function findUserById(string $accessToken, string $userId): array
     {
-        return [];
+        // Busca usuário Github por ID
+        return ['id' => $userId, 'login' => 'githubuser'];
     }
 
-    public function followUser(string $accessToken, $userId): array
+    public function followUser(string $accessToken, string $userId): array
     {
-        return [];
+        // Segue usuário no Github
+        return ['success' => true];
     }
 
-    public function unfollowUser(string $accessToken, $userId): array
+    public function unfollowUser(string $accessToken, string $userId): array
     {
-        return [];
+        // Para de seguir usuário no Github
+        return ['success' => true];
     }
 }
 ```
@@ -142,4 +152,8 @@ A ideia é você não escrever código desnecessário e dizer EXATAMENTE quais s
 
 Os princípios dentro do SOLID entram praticamente em responsabilidade e legibilidade, porém o ISP te dá a melhor visão sobre. Se você leu até aqui, não esqueça de dar uma estrela no repositório =)
 
-[5. Ir para 'Dependency Inversion Principle'](5-dip.md)
+---
+
+## Navegação
+
+[← Introdução](0-introducao.md) • [1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [5 – Dependency Inversion Principle](5-dip.md)

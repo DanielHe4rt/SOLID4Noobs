@@ -3,7 +3,7 @@
 
 "Let **q(x)** be a property provable about object **x** of type **T**. Then **q(y)** should be true for objects **y** of type **S** where **S** is a subtype of **T**."
 
-Well, you don't have to understand this bullshit above. It's will be nice to understand? Probably. But let's explain it using PHP.
+Well, you don't have to understand this confusing formal definition above. It would be nice to understand? Probably. But let's explain it using PHP.
 
 We saw a lot of code on the previous principle, where we let the code more generic using OCP. But, something very important was missing. The return of the implement methods where we implemented the interfaces.
 
@@ -14,23 +14,23 @@ When you extends a parent class to a child, you inherit all the public/protected
 
 ```php
 class Model {
-    public function store() {
+    public function store(): bool {
         return true;
     }
 }
 
 class User extends Model {
-    public function store() {
+    public function store(): array { // ❌ Fatal error: Return type must be bool
         return ['success'];
     }
 }
 ```
 
-If you want to undestand the Liskov's Principle, the first thing you need to know is how to develop with **Contracts/Interfaces**. We saw something about on OCP, but you saw the example above, on the parent class the return of method store is **boolean** and on the child class the return is an **array** and it breaks completely the worked principle.
+If you want to understand the Liskov's Principle, the first thing you need to know is how to develop with **Contracts/Interfaces**. We saw something about it on OCP, but you saw the example above: on the parent class the return of method store is **boolean** and on the child class the return is an **array** and it breaks completely the worked principle.
 
 In theory, if you override something, you **HAVE** to keep the return type from the parent. If, the parent function returns X **fn parent(): x**, the override function should return X **fn children(): x**.
 
-Until now we don't see any contract being implemented. But, what in the name of ~~fuck~~ is a contract?
+Until now we don't see any contract being implemented. But, what is a contract?
 
 Contract is a given name to **Interfaces**, where you can say which functions will be necessary to implement.
 
@@ -243,4 +243,8 @@ We understood that pre-conditions not should be greather and post-conditions sho
 This a very very basic content about LSP, hope you enjoyed.
 
 
-[4. Go to 'Interface Segregation'](4-isp.md)
+---
+
+## Navigation
+
+[← Introduction](0-introduction.md) • [1 – Single Responsibility Principle](1-srp.md) • [2 – Open-Closed Principle](2-ocp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)

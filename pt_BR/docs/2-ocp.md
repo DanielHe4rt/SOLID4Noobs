@@ -74,7 +74,7 @@ class AuthRepository {
         $service = new DiscordService();
         $authData = $service->authWithDiscord($code);
 
-        $response = $authService->getDiscordUser($authData['access_token']);
+        $response = $service->getDiscordUser($authData['access_token']);
         $authUser = $this->findOrCreate('discord',$response);
 
         Auth::user($authUser);
@@ -86,7 +86,7 @@ class AuthRepository {
         $service = new TwitchService();
         $authData = $service->authWithTwitch($code);
 
-        $response = $authService->getTwitchUser($authData['access_token']);
+        $response = $service->getTwitchUser($authData['access_token']);
         $authUser = $this->findOrCreate('twitch',$response);
 
         Auth::user($authUser);
@@ -98,7 +98,7 @@ class AuthRepository {
         $service = new GithubService();
         $authData = $service->authWithGithub($code);
 
-        $response = $authService->getGithubUser($authData['access_token']);
+        $response = $service->getGithubUser($authData['access_token']);
         $authUser = $this->findOrCreate('github',$response);
 
         Auth::user($authUser);
@@ -127,7 +127,7 @@ class AuthRepository {
             return $auth;
         }
 
-        throw new \Exception('deu ruim');
+        throw new \Exception('Algo deu errado');
     }
 
 }
@@ -209,17 +209,17 @@ Se a gente conseguir padronizar as funções, tudo que precisamos fazer é dar u
 // GithubService
 $service = new GithubService();
 $authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
+$response = $service->getAuthenticatedUser($authData['access_token']);
 
 // DiscordService
 $service = new DiscordService();
 $authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
+$response = $service->getAuthenticatedUser($authData['access_token']);
 
 // TwitchService
 $service = new TwitchService();
 $authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
+$response = $service->getAuthenticatedUser($authData['access_token']);
 ```
 
 Agora pra finalizar, precisamos dizer pro nosso repositório que há um método polimórfico entrando, e o correto pra isso seria tipar o retorno desse metodo com a **INTERFACE**. Você vai retornar
@@ -248,7 +248,7 @@ class AuthRepository {
         $service = $this->getProvider($provider);
         $authData = $service->auth($code);
 
-        $response = $authService->getAuthenticatedUser($authData['access_token']);
+        $response = $service->getAuthenticatedUser($authData['access_token']);
         $authUser = $this->findOrCreate($provider, $response);
 
         Auth::user($authUser);
@@ -277,7 +277,7 @@ class AuthRepository {
             return $auth;
         }
 
-        throw new \Exception('deu ruim');
+        throw new \Exception('Algo deu errado');
     }
 
     public function getProvider(string $provider): OAuthContract
@@ -285,7 +285,8 @@ class AuthRepository {
         return match($provider) {
             'discord' => new DiscordService(),
             'twitch' => new TwitchService(),
-            'github' => new GithubService()
+            'github' => new GithubService(),
+            default => throw new \InvalidArgumentException("Provedor OAuth não suportado: {$provider}")
         };
     }
 
@@ -296,4 +297,8 @@ Seu software está aberto a extensão, porém fechado para modificação! Congra
 
 Se seus Services tiverem lindos, maravilhosos e funcionais, você não vai precisar modificá-los. Mas caso você queira implementar um novo provedor de OAuth, basta criar uma nova classe, implementar a interface e adicionar ao match do getProvider e tá lá. Sem modificar o código antigo, apenas aberto a extensão.
 
-[3. Ir para 'Liskov's Substitution Principle'](3-lsp.md)
+---
+
+## Navegação
+
+[← Introdução](0-introducao.md) • [1 – Single Responsibility Principle](1-srp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)
