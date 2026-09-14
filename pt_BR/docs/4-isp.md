@@ -1,156 +1,160 @@
-# Interface Segregation Principle
+# 4 - Interface Segregation Principle
 
-Esse princípio é um dos mais simples de entender, porém um dos mais difíceis de arrumar exemplos práticos, então primeiro vamos entender a teoria e depois vamos pro código.
+Esse princípio é um dos mais simples de entender, porém um dos mais difíceis de ilustrar com exemplos práticos. Então, primeiro a teoria e depois o código.
 
-ISP se dá a segregação de Interfaces responsáveis por coisas específicas. Lembra do primeiro princípio? Single Responsibility? Aqui temos o mesmo ponto, porém apenas com Interfaces.
+> "Clients should not be forced to depend upon interfaces that they do not use."
+>
+> "Clientes não devem ser forçados a depender de interfaces que não usam."
 
-Não entendeu? Vamos pro exemplo então:
+O ISP trata de separar interfaces por responsabilidades específicas. Lembra do primeiro princípio, o Single Responsibility? Aqui a ideia é a mesma, só que aplicada às interfaces: é melhor ter várias interfaces pequenas do que uma interface gigante que faz de tudo.
+
+Não entendeu? Então vamos ao exemplo. O nosso `OAuthContract` cresceu e ganhou um método para renovar o token de acesso quando ele expira:
 
 ```php
-interface OAuthContract {
-    public function auth(string $code): bool;
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
 
-    public function getAuthenticatedUser(string $accessToken): array;
+    public function getAuthenticatedUser(string $accessToken): OAuthUser;
 
-    public function findUserById(string $accessToken, string $userId): array;
-
-    public function followUser(string $accessToken, string $userId): array;
-
-    public function unfollowUser(string $accessToken, string $userId): array;
+    public function refreshAccessToken(string $refreshToken): string;
 }
 ```
 
-Se você notar, temos duas funções que em tese deveriam estar juntas. Tá errado? Não tá. Mas quando se trata de ISP, possivelmente está errado. Mas porquê exatamente?
+Tá errado? Não necessariamente. Mas, quando falamos de ISP, provavelmente está. Por quê?
 
-Se você observar bem, existem duas coisas sendo feitas. Uma é essencial, a outra nem tanto.
+Vamos ao cenário:
 
-Ok, vamos dar um cenário:
+- O nosso chat permite login com Spotify, Twitch e GitHub;
+- O Spotify e a Twitch entregam tokens que expiram. Para continuar usando a API, você precisa renová-los com um **refresh token**;
+- O GitHub (num OAuth App) entrega um token que não expira. Ou seja: não existe refresh token para renovar.
 
-- Nosso software de chat tem como possibilidade logar com Spotify, Twitch e Github;
-- Porém você poderá deixar mensagens para quando um usuário se cadastrar, e poderá pesquisar usuários da Twitch e Github;
-- Você poderá seguir essas pessoas nas redes sociais Twitch e Github para chamar atenção delas;
-
-Como iremos segregar essas funções em interfaces? Se liga:
-
+Agora olha o que acontece com o `GithubClient`:
 
 ```php
-interface OAuthBaseContract {
-    public function auth(string $code): bool;
-
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-interface OAuthSocialContract {
-    public function findUserById(string $accessToken, string $userId): array;
-
-    public function followUser(string $accessToken, string $userId): array;
-
-    public function unfollowUser(string $accessToken, string $userId): array;
-}
-```
-
-Segregamos as funções para cada responsabilidade. E como ficaria para a nossa aplicação isso?
-
-```php
-interface OAuthBaseContract {
-    public function auth(string $code): bool;
-
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-interface OAuthSocialContract {
-    public function findUserById(string $accessToken, string $userId): array;
-
-    public function followUser(string $accessToken, string $userId): array;
-
-    public function unfollowUser(string $accessToken, string $userId): array;
-}
-
-class SpotifyService implements OAuthBaseContract {
-
-    public function auth(string $code): bool
+final class GithubClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
     {
-        // Autentica com API Spotify
-        return true;
+        // ...
     }
 
-    public function getAuthenticatedUser(string $accessToken): array
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
     {
-        return [];
-    }
-}
-
-class TwitchService implements OAuthBaseContract, OAuthSocialContract {
-
-    public function auth(string $code): bool
-    {
-        // Autentica com API Twitch
-        return true;
+        // ...
     }
 
-    public function getAuthenticatedUser(string $accessToken): array
+    public function refreshAccessToken(string $refreshToken): string
     {
-        // Retorna dados do usuário Twitch
-        return ['id' => '456', 'email' => 'user@twitch.tv'];
-    }
-
-    public function findUserById(string $accessToken, $userId): array
-    {
-        return [];
-    }
-
-    public function followUser(string $accessToken, string $userId): array
-    {
-        // Segue usuário na Twitch
-        return ['success' => true];
-    }
-
-    public function unfollowUser(string $accessToken, string $userId): array
-    {
-        // Para de seguir usuário na Twitch
-        return ['success' => true];
-    }
-}
-
-class GithubService implements OAuthBaseContract, OAuthSocialContract  {
-
-    public function auth(string $code): bool
-    {
-        // Autentica com API Github
-        return true;
-    }
-
-    public function getAuthenticatedUser(string $accessToken): array
-    {
-        // Retorna dados do usuário Github
-        return ['id' => '789', 'email' => 'user@github.com'];
-    }
-
-    public function findUserById(string $accessToken, string $userId): array
-    {
-        // Busca usuário Github por ID
-        return ['id' => $userId, 'login' => 'githubuser'];
-    }
-
-    public function followUser(string $accessToken, string $userId): array
-    {
-        // Segue usuário no Github
-        return ['success' => true];
-    }
-
-    public function unfollowUser(string $accessToken, string $userId): array
-    {
-        // Para de seguir usuário no Github
-        return ['success' => true];
+        throw new LogicException('O GitHub não usa refresh token.');
     }
 }
 ```
 
-Você entendeu que para login, os três provedores estão habilitados, mas para algumas interações com as redes sociais da aplicação, apenas dois dos três provedores estão implementando?
+A interface obrigou o `GithubClient` a implementar um método que ele não usa. Resultado: um método que só existe para lançar uma exceção. E, se alguém chamar `refreshAccessToken()` num `OAuthContract` qualquer, o código explode em produção. Lembra do LSP? Pois é, quebramos ele também.
 
-A ideia é você não escrever código desnecessário e dizer EXATAMENTE quais são as funções necessárias dentro daquela classe. Quanto mais você segregar, mais entendível vai ficar seu código e o que ele DEVE fazer.
+Como vamos separar essas responsabilidades em interfaces? Se liga:
 
-Os princípios dentro do SOLID entram praticamente em responsabilidade e legibilidade, porém o ISP te dá a melhor visão sobre. Se você leu até aqui, não esqueça de dar uma estrela no repositório =)
+```php
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser;
+}
+
+interface RefreshableOAuthContract
+{
+    public function refreshAccessToken(string $refreshToken): string;
+}
+```
+
+Separamos os métodos por responsabilidade. E como isso fica na aplicação?
+
+```php
+final class SpotifyClient implements OAuthContract, RefreshableOAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+
+    public function refreshAccessToken(string $refreshToken): string
+    {
+        return Http::asForm()
+            ->withBasicAuth(config('services.spotify.client_id'), config('services.spotify.client_secret'))
+            ->post('https://accounts.spotify.com/api/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+            ])
+            ->json('access_token');
+    }
+}
+
+final class TwitchClient implements OAuthContract, RefreshableOAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+
+    public function refreshAccessToken(string $refreshToken): string
+    {
+        return Http::asForm()
+            ->post('https://id.twitch.tv/oauth2/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+                'client_id' => config('services.twitch.client_id'),
+                'client_secret' => config('services.twitch.client_secret'),
+            ])
+            ->json('access_token');
+    }
+}
+
+final class GithubClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+}
+```
+
+Agora o tipo diz EXATAMENTE o que cada client sabe fazer. Quem precisa renovar um token pede um `RefreshableOAuthContract`, e o PHP não deixa passar um client que não sabe fazer isso:
+
+```php
+function renewAccessToken(RefreshableOAuthContract $client, string $refreshToken): string
+{
+    return $client->refreshAccessToken($refreshToken);
+}
+
+renewAccessToken(new TwitchClient(), $refreshToken);
+// OK
+
+renewAccessToken(new GithubClient(), $refreshToken);
+// ❌ TypeError: renewAccessToken(): Argument #1 ($client) must be of type RefreshableOAuthContract, GithubClient given
+```
+
+Percebeu? Os três provedores fazem login, mas só dois sabem renovar token. E nenhum deles carrega um método que não usa.
+
+A ideia é não escrever código desnecessário e dizer EXATAMENTE quais métodos cada classe precisa ter. Quanto mais você segregar (com bom senso), mais fácil fica entender o código e o que ele DEVE fazer.
+
+Todos os princípios do SOLID giram em torno de responsabilidade e legibilidade, mas o ISP é o que deixa isso mais visível. Se você leu até aqui, não esquece de deixar uma estrela no repositório =)
 
 ---
 

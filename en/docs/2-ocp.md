@@ -1,303 +1,328 @@
-# 2 - Open-closed Principle
+# 2 - Open-Closed Principle
 
-The 'Open Closed Principle' reflects to a part of the code that needs to be implemented, but without to
-change the code that is already written.
+The Open-Closed Principle says that you should be able to add new behavior to your code without changing the code that is already written.
 
-The idea is to let the code functions more generic, applying interfaces, with predefined functions where the polymorphism become the main attractive to develop with this principle.
+The idea is to make the code generic by using interfaces. Each interface defines a set of methods, and polymorphism becomes the star of the show.
 
-<center>
-    "Software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification."
-</center>
+> "Software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification."
 
-Let's say that you have three routes to OAuth authentication (3rd party platforms), where you want your
-app have the possibility to auth with Twitch, Github and Spotify.
+Let's say your platform has OAuth login (third-party platforms) with Discord, Twitch, and GitHub.
 
-Inside the router, you'll create three different routes, one to each type of authentication (since they go to
-different services).
-
+To do that, you create three different routes, one for each provider (since each one talks to a different service):
 
 ```php
 // routes/web.php
-Route::get('auth/oauth/discord', [AuthController:: class,'getDiscordAuth']);
-Route::get('auth/oauth/twitch', [AuthController:: class,'getTwitchAuth']);
-Route::get('auth/oauth/github', [AuthController:: class,'getGithubAuth']);
+Route::get('auth/oauth/discord', [AuthController::class, 'discord']);
+Route::get('auth/oauth/twitch', [AuthController::class, 'twitch']);
+Route::get('auth/oauth/github', [AuthController::class, 'github']);
 ```
-
 
 ```php
 // app/Http/Controllers/AuthController.php
-class AuthController {
-
-    private $repository;
-
-    public function __construct(AuthRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function getDiscordAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->discordAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-
-    public function getTwitchAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->twitchAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-
-    public function getGithubAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->githubAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-}
-```
-
-```php
-class AuthRepository {
-
-    public function discordAuth(string $code)
-    {
-        $service = new DiscordService();
-        $authData = $service->authWithDiscord($code);
-
-        $response = $service->getDiscordUser($authData['access_token']);
-        $authUser = $this->findOrCreate('discord',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function twitchAuth(string $code)
-    {
-        $service = new TwitchService();
-        $authData = $service->authWithTwitch($code);
-
-        $response = $service->getTwitchUser($authData['access_token']);
-        $authUser = $this->findOrCreate('twitch',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function githubAuth(string $code)
-    {
-        $service = new GithubService();
-        $authData = $service->authWithGithub($code);
-
-        $response = $service->getGithubUser($authData['access_token']);
-        $authUser = $this->findOrCreate('github',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function findOrCreate(string $provider, $providerData): User
-    {
-        $auth = User::where('email', $providerData['email'])->first();
-        if (!$auth) {
-            return User::create([
-                'name' => $providerData['name'],
-                'email' => $providerData['email'],
-                $provider . "_id" => $providerData['id'],
-            ]);
-        }
-
-        if (empty($auth->{$provider . "_id"})) {
-            $auth->update([
-                $provider . "_id" => $providerData['id']
-            ]);
-            return $auth;
-        }
-
-        if ($auth->{$provider . "_id"} == $providerData['id']) {
-            return $auth;
-        }
-
-        throw new \Exception('Something went wrong.');
-    }
-
-}
-```
-
-If you read the snippets above, you will notice that has a pattern that we can follow to improve the code.
-Like, the OAuth itself is a pattern, you have the same requests and types of responses but our code doesn't understand that YET.
-
-The way that was written WORKS but is pretty hard to maintain this code. Let's rewrite all that applying OCP.
-Let's summarize these three routes in one, and it should look like this:
-
-```php
-// routes/web.php
-Route::get('auth/oauth/{provider}', [AuthController:: class, 'getOAuth']);
-```
-
-Only changing this route prefix, you can already understand that we're going to make things more generic having in sight that there is a pattern. Now we're going to change our controller to support these changes:
-
-```php
-// app/Http/Controllers/AuthController.php
-class AuthController {
-
-    private $repository;
-
-    public function __construct(AuthRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function getOAuth(Request $request, string $provider)
-    {
-        try {
-            $result = $this->repository->authenticateOAuth($provider,$request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-}
-```
-
-We pass the provider that we want to consume into our repository and now we have a issue to make the repository understand which one of the 3/N it needs to call. 
-
-Now let's analyze the functions/methods from service that is being called in the Repository:
-
-```php
-// GithubService
-$service = new GithubService();
-$authData = $service->authWithGithub($code);
-$response = $authService->getGithubUser($authData['access_token']);
-
-// DiscordService
-$service = new DiscordService();
-$authData = $service->authWithDiscord($code);
-$response = $authService->getDiscordUser($authData['access_token']);
-
-// TwitchService
-$service = new TwitchService();
-$authData = $service->authWithTwitch($code);
-$response = $authService->getTwitchUser($authData['access_token']);
-```
-
-As we can see there's a pattern, but the names of the functions is intuitives but not generics. Now, if we stop and create an **INTERFACE**, it changes completely.
-
-Let's name our interface as OAuthContract with the following methods:
-
-```php
-interface OAuthContract {
-
-    public function auth(string $code);
-
-    public function getAuthenticatedUser(string $accessToken);
-}
-```
-
-If we can standardize the methods, all we have to do is to find a way to call a Service that have this Interface, because we will guarantee that the methods are implemented. Look at this:
-
-
-```php
-// GithubService
-$service = new GithubService();
-$authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
-
-// DiscordService
-$service = new DiscordService();
-$authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
-
-// TwitchService
-$service = new TwitchService();
-$authData = $service->auth($code);
-$response = $authService->getAuthenticatedUser($authData['access_token']);
-```
-
-Now to finish, we need to tell to our Repository that has a polymorphic method/class trying to be called, and the correct way to do it is typing the return of this function with the **INTERFACE**. Then you will return: 
-
-```php
-
-public function getProvider(string $provider): OAuthContract
+final class AuthController extends Controller
 {
-    return match($provider) {
-        'discord' => new DiscordService(),
-        'twitch' => new TwitchService(),
-        'github' => new GithubService()
+    public function __construct(
+        private readonly AuthService $authService,
+    ) {}
+
+    public function discord(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithDiscord($request->query('code'));
+
+        return response()->json($user);
+    }
+
+    public function twitch(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithTwitch($request->query('code'));
+
+        return response()->json($user);
+    }
+
+    public function github(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithGithub($request->query('code'));
+
+        return response()->json($user);
+    }
+}
+```
+
+```php
+// app/Services/AuthService.php
+final class AuthService
+{
+    public function loginWithDiscord(string $code): User
+    {
+        $client = new DiscordClient();
+        $accessToken = $client->authWithDiscord($code);
+        $discordUser = $client->getDiscordUser($accessToken);
+
+        $user = $this->findOrCreateUser('discord', $discordUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    public function loginWithTwitch(string $code): User
+    {
+        $client = new TwitchClient();
+        $accessToken = $client->authWithTwitch($code);
+        $twitchUser = $client->getTwitchUser($accessToken);
+
+        $user = $this->findOrCreateUser('twitch', $twitchUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    public function loginWithGithub(string $code): User
+    {
+        $client = new GithubClient();
+        $accessToken = $client->authWithGithub($code);
+        $githubUser = $client->getGithubUser($accessToken);
+
+        $user = $this->findOrCreateUser('github', $githubUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        $providerColumn = "{$provider}_id";
+        $user = User::query()->firstWhere('email', $providerUser['email']);
+
+        if ($user === null) {
+            return User::query()->create([
+                'name' => $providerUser['name'],
+                'email' => $providerUser['email'],
+                $providerColumn => $providerUser['id'],
+            ]);
+        }
+
+        if ($user->{$providerColumn} === null) {
+            $user->update([$providerColumn => $providerUser['id']]);
+
+            return $user;
+        }
+
+        $isSameAccount = (string) $user->{$providerColumn} === (string) $providerUser['id'];
+
+        if (! $isSameAccount) {
+            throw new AuthenticationException('This email is already linked to another account.');
+        }
+
+        return $user;
+    }
+}
+```
+
+If you read the snippets above, you'll notice a pattern we can use to improve the code. The OAuth flow is **generic**: every provider exchanges a `code` for an access token and then returns the user data. But our code doesn't understand that YET.
+
+The way it's written, it WORKS. But for every new provider, you have to touch the routes, the controller, and the service. Let's rewrite it applying OCP.
+
+Let's merge these three routes into one:
+
+```php
+// routes/web.php
+Route::get('auth/oauth/{provider}', [AuthController::class, 'login']);
+```
+
+Just by changing this route, you can already tell that we're going to make things more generic, since there is a pattern. Now let's update our controller to support this change:
+
+```php
+// app/Http/Controllers/AuthController.php
+final class AuthController extends Controller
+{
+    public function __construct(
+        private readonly AuthService $authService,
+    ) {}
+
+    public function login(Request $request, string $provider): JsonResponse
+    {
+        $user = $this->authService->login($provider, $request->query('code'));
+
+        return response()->json($user);
+    }
+}
+```
+
+The controller passes the provider to the service, and now the service has to figure out which of the 3 (or N) clients it needs to call.
+
+Now let's analyze the client methods that the service calls:
+
+```php
+// DiscordClient
+$accessToken = $client->authWithDiscord($code);
+$providerUser = $client->getDiscordUser($accessToken);
+
+// TwitchClient
+$accessToken = $client->authWithTwitch($code);
+$providerUser = $client->getTwitchUser($accessToken);
+
+// GithubClient
+$accessToken = $client->authWithGithub($code);
+$providerUser = $client->getGithubUser($accessToken);
+```
+
+There's a pattern, but the method names, although intuitive, are not generic. Now, if we stop and create an **INTERFACE**, everything changes.
+
+Let's name our interface `OAuthContract`, with the following methods:
+
+```php
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
+
+    public function getAuthenticatedUser(string $accessToken): array;
+}
+```
+
+If every client implements this interface, PHP will GUARANTEE that the methods exist. Then it doesn't matter which client shows up. Look at this:
+
+```php
+final class DiscordClient implements OAuthContract { /* ... */ }
+final class TwitchClient implements OAuthContract { /* ... */ }
+final class GithubClient implements OAuthContract { /* ... */ }
+
+$accessToken = $client->getAccessToken($code);
+$providerUser = $client->getAuthenticatedUser($accessToken);
+```
+
+Now we need to tell the service which client to use. The right way to do it is to type the method's return with the **INTERFACE**:
+
+```php
+private function resolveClient(string $provider): OAuthContract
+{
+    return match ($provider) {
+        'discord' => new DiscordClient(),
+        'twitch' => new TwitchClient(),
+        'github' => new GithubClient(),
+        default => throw new InvalidArgumentException("Unsupported OAuth provider: {$provider}"),
     };
 }
 ```
 
-Just keep in mind that you can return class/interfaces/types. You can understand that you will return a class that have the Interface OAuthContract implemented that will force those generic methods being implemented. If you try to pass other class that doesn't have this interface implemented, it not going to work.
+Since the return type is `OAuthContract`, the method can only return a class that implements this interface, and that's what forces those generic methods to exist. If you try to return a class without the interface, it will blow up (with a nice `TypeError`).
 
-
-Now, lets refactor the Repository to receive this generic change inside our project:
+Now let's refactor the service to receive this change:
 
 ```php
-class AuthRepository {
-
-    public function authenticateOAuth(string $provider, string $code): bool
+// app/Services/AuthService.php
+final class AuthService
+{
+    public function login(string $provider, string $code): User
     {
-        $service = $this->getProvider($provider);
-        $authData = $service->auth($code);
+        $client = $this->resolveClient($provider);
 
-        $response = $service->getAuthenticatedUser($authData['access_token']);
-        $authUser = $this->findOrCreate($provider, $response);
+        $accessToken = $client->getAccessToken($code);
+        $providerUser = $client->getAuthenticatedUser($accessToken);
 
-        Auth::user($authUser);
-        return true;
+        $user = $this->findOrCreateUser($provider, $providerUser);
+        Auth::login($user);
+
+        return $user;
     }
 
-    public function findOrCreate(string $provider, $providerData): User
+    private function resolveClient(string $provider): OAuthContract
     {
-        $auth = User::where('email', $providerData['email'])->first();
-        if (!$auth) {
-            return User::create([
-                'name' => $providerData['name'],
-                'email' => $providerData['email'],
-                $provider . "_id" => $providerData['id'],
-            ]);
-        }
-
-        if (empty($auth->{$provider . "_id"})) {
-            $auth->update([
-                $provider . "_id" => $providerData['id']
-            ]);
-            return $auth;
-        }
-
-        if ($auth->{$provider . "_id"} == $providerData['id']) {
-            return $auth;
-        }
-
-        throw new \Exception('Something went wrong');
-    }
-
-    public function getProvider(string $provider): OAuthContract
-    {
-        return match($provider) {
-            'discord' => new DiscordService(),
-            'twitch' => new TwitchService(),
-            'github' => new GithubService(),
-            default => throw new \InvalidArgumentException("Unsupported OAuth provider: {$provider}")
+        return match ($provider) {
+            'discord' => new DiscordClient(),
+            'twitch' => new TwitchClient(),
+            'github' => new GithubClient(),
+            default => throw new InvalidArgumentException("Unsupported OAuth provider: {$provider}"),
         };
+    }
+
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        // same as the previous example
     }
 }
 ```
 
-Your software is opened to extend more OAuth Services, but closed for modification! Congratz you finished this principle.
+## Closing it for modification for real
 
-If your Services are working, you'll not need to modify it. But in the case that you want to implement a new  OAuth provider, you'll need to create a new Service Class like **GoogleService** and implement the **OAuthInterface** and add it to the match expression on the function **getProvider()** inside your repository and that's it. Open for extension but close for modification.
+Notice one detail: to add Google, you would still have to open `AuthService` and change the `match`. In other words, it isn't 100% closed for modification yet.
+
+To fix that, we move the list of clients out of the service and let the Laravel container hand it over ready to use:
+
+```php
+// app/Providers/AppServiceProvider.php
+namespace App\Providers;
+
+use App\Services\AuthService;
+use App\Services\OAuth\DiscordClient;
+use App\Services\OAuth\GithubClient;
+use App\Services\OAuth\TwitchClient;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->when(AuthService::class)
+            ->needs('$clients')
+            ->give(fn (Application $app): array => [
+                'discord' => $app->make(DiscordClient::class),
+                'twitch' => $app->make(TwitchClient::class),
+                'github' => $app->make(GithubClient::class),
+            ]);
+    }
+}
+```
+
+```php
+// app/Services/AuthService.php
+namespace App\Services;
+
+use App\Models\User;
+use App\Services\OAuth\OAuthContract;
+use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
+
+final class AuthService
+{
+    /**
+     * @param array<string, OAuthContract> $clients
+     */
+    public function __construct(
+        private readonly array $clients,
+    ) {}
+
+    public function login(string $provider, string $code): User
+    {
+        $client = $this->clients[$provider]
+            ?? throw new InvalidArgumentException("Unsupported OAuth provider: {$provider}");
+
+        $accessToken = $client->getAccessToken($code);
+        $providerUser = $client->getAuthenticatedUser($accessToken);
+
+        $user = $this->findOrCreateUser($provider, $providerUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        // same as the previous example
+    }
+}
+```
+
+Your software is now open for extension, but closed for modification! Congratz, you finished this principle.
+
+If your clients are working, you won't need to touch them. And if you want to add a new provider, like Google, all you need to do is:
+
+1. Create a `GoogleClient` class that implements `OAuthContract`;
+2. Register `'google'` in the `AppServiceProvider`.
+
+Not a single line of `AuthService`, the controller, or the routes needs to change.
+
+> **In real life:** [Laravel Socialite](https://laravel.com/docs/socialite) already handles OAuth login using this exact idea: one driver per provider, all of them with the same interface.
 
 ---
 
