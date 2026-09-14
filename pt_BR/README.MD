@@ -16,7 +16,7 @@
  <!-- ABOUT THE PROJECT -->
 
 ## Sobre o Projeto
-SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software para que ele seja flexível, legível e de fácil manutenção.
+SOLID é um acrônimo de 5 princípios que ajudam a criar software flexível, legível e fácil de manter.
 
 <!-- ROADMAP OF PROJECT -->
 
@@ -33,13 +33,13 @@ SOLID é um acrônimo para 5 regras que facilitam o desenvolvimento de software 
 
 ## Como Contribuir
 
-Contribuições fazem com que a comunidade open source seja um lugar incrível para aprender, inspirar e criar. Todas contribuições
-são **extremamente apreciadas**
+Contribuições fazem da comunidade open source um lugar incrível para aprender, inspirar e criar. Todas as contribuições
+são **extremamente bem-vindas**.
 
-1. Realize um Fork do projeto
-2. Crie um branch com a nova feature (`git checkout -b feature/featureBraba`)
-3. Realize o Commit (`git commit -m 'Adicionado conteudo brabo'`)
-4. Realize o Push no Branch (`git push origin feature/featureBraba`)
+1. Faça um fork do projeto
+2. Crie uma branch com a sua feature (`git checkout -b feature/feature-braba`)
+3. Faça o commit (`git commit -m 'Adiciona conteúdo brabo'`)
+4. Faça o push para a branch (`git push origin feature/feature-braba`)
 5. Abra um Pull Request
 
 ## Autores

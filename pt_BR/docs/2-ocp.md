@@ -1,301 +1,330 @@
-# 2 - Open-closed Principle
+# 2 - Open-Closed Principle
 
-O Princípio Aberto-Fechado (nome tosco) reflete uma parte do código que precisa ser implementada, porém sem alterar o código já escrito.
+O Princípio Aberto-Fechado (nome tosco, eu sei) diz que você deve conseguir adicionar comportamento novo ao código sem alterar o código que já está escrito.
 
-A ideia é deixar o código genérico, com a aplicação de interfaces, com funções pré-definidas onde o polimorfismo vira o principal atrativo pro desenvolvimento usando esse princípio.
+A ideia é deixar o código genérico usando interfaces. Cada interface define um conjunto de métodos, e o polimorfismo vira a estrela do show.
 
+> "Software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification."
+>
+> "Entidades de software (classes, módulos, funções etc.) devem estar abertas para extensão, mas fechadas para modificação."
 
-<center>
-    "Software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification."
-</center>
+Digamos que a sua plataforma tenha login via OAuth (plataformas de terceiros) com Discord, Twitch e GitHub.
 
-Vamos dizer que você tenha três rotas para autenticação OAuth (plataforma de terceiros), onde você quer que sua plataforma tenha login pela Twitch, Github e Spotify.
-
-Nela você cria três rotas diferentes, uma pra cada tipo de autenticação (já que vão para serviços diferentes).
-
+Para isso, você cria três rotas diferentes, uma para cada provedor (já que cada um fala com um serviço diferente):
 
 ```php
 // routes/web.php
-Route::get('auth/oauth/discord', [AuthController:: class,'getDiscordAuth']);
-Route::get('auth/oauth/twitch', [AuthController:: class,'getTwitchAuth']);
-Route::get('auth/oauth/github', [AuthController:: class,'getGithubAuth']);
+Route::get('auth/oauth/discord', [AuthController::class, 'discord']);
+Route::get('auth/oauth/twitch', [AuthController::class, 'twitch']);
+Route::get('auth/oauth/github', [AuthController::class, 'github']);
 ```
-
-
 
 ```php
 // app/Http/Controllers/AuthController.php
-class AuthController {
-
-    private $repository;
-
-    public function __construct(AuthRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function getDiscordAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->discordAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-
-    public function getTwitchAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->twitchAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-
-    public function getGithubAuth(Request $request)
-    {
-        try {
-            $result = $this->repository->githubAuth($request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-}
-```
-
-```php
-class AuthRepository {
-
-    public function discordAuth(string $code)
-    {
-        $service = new DiscordService();
-        $authData = $service->authWithDiscord($code);
-
-        $response = $service->getDiscordUser($authData['access_token']);
-        $authUser = $this->findOrCreate('discord',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function twitchAuth(string $code)
-    {
-        $service = new TwitchService();
-        $authData = $service->authWithTwitch($code);
-
-        $response = $service->getTwitchUser($authData['access_token']);
-        $authUser = $this->findOrCreate('twitch',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function githubAuth(string $code)
-    {
-        $service = new GithubService();
-        $authData = $service->authWithGithub($code);
-
-        $response = $service->getGithubUser($authData['access_token']);
-        $authUser = $this->findOrCreate('github',$response);
-
-        Auth::user($authUser);
-        return true;
-    }
-
-    public function findOrCreate(string $provider, $providerData): User
-    {
-        $auth = User::where('email', $providerData['email'])->first();
-        if (!$auth) {
-            return User::create([
-                'name' => $providerData['name'],
-                'email' => $providerData['email'],
-                $provider . "_id" => $providerData['id'],
-            ]);
-        }
-
-        if (empty($auth->{$provider . "_id"})) {
-            $auth->update([
-                $provider . "_id" => $providerData['id']
-            ]);
-            return $auth;
-        }
-
-        if ($auth->{$provider . "_id"} == $providerData['id']) {
-            return $auth;
-        }
-
-        throw new \Exception('Algo deu errado');
-    }
-
-}
-```
-
-Se você ver os snippets acima, dá pra ver que tem um padrão que podemos seguir pra melhorar o código. Se começarmos a perceber, o OAuth em si é **genérico** então as requisições trazem os mesmos dados enquanto logando, mas o nosso código não entende isso.
-
-Do jeito feito, ele FUNCIONA, porém dá pra fazer funcionar com uma lógica mais bonita ainda.
-
-Vamos resumir essas três rotas em uma só desse jeito:
-
-```php
-Route::get('auth/oauth/{provider}', [AuthController:: class, 'getOAuth']);
-```
-
-Apenas trocando essa rota, já deu pra entender que vamos deixar as coisas mais genéricas tendo em vista que há um padrão. Agora vamos alterar o nosso controller para comportar essas mudanças:
-
-
-```php
-// app/Http/Controllers/AuthController.php
-class AuthController {
-
-    private $repository;
-
-    public function __construct(AuthRepository $repository)
-    {
-        $this->repository = $repository;
-    }
-
-    public function getOAuth(Request $request, string $provider)
-    {
-        try {
-            $result = $this->repository->authenticateOAuth($provider,$request->input('code'));
-            return response()->json($result);
-        } catch(UnauthorizedException $e) {
-            return response()->json($e->getMessage(), 401);
-        }
-    }
-}
-```
-
-Passsamos o provedor de dados que queremos consumir pra dentro do nosso repositório e ele que lute pra saber qual dos 3/N chamar.
-
-Agora vamos analisar as funções do serviço que estão sendo chamadas no nosso repositório.
-
-```php
-// GithubService
-$service = new GithubService();
-$authData = $service->authWithGithub($code);
-$response = $service->getGithubUser($authData['access_token']);
-
-// DiscordService
-$service = new DiscordService();
-$authData = $service->authWithDiscord($code);
-$response = $service->getDiscordUser($authData['access_token']);
-
-// TwitchService
-$service = new TwitchService();
-$authData = $service->authWithTwitch($code);
-$response = $service->getTwitchUser($authData['access_token']);
-```
-
-Podemos ver que existe um padrão nisso, porém os nomes das funções são intuitivos mas não genéricos. Agora, se nós pararmos e criarmos uma **INTERFACE**, isso mudaria completamente.
-
-Vamos dar o nome da nossa interface OAuthContract com as seguintes funções:
-
-```php
-interface OAuthContract {
-
-    public function auth(string $code);
-
-    public function getAuthenticatedUser(string $accessToken);
-}
-```
-
-Se a gente conseguir padronizar as funções, tudo que precisamos fazer é dar um jeito de chamar um serviço que tenha essa interface, porquê aí nos vamos GARANTIR que os métodos estão implementados. Se liga:
-
-```php
-// GithubService
-$service = new GithubService();
-$authData = $service->auth($code);
-$response = $service->getAuthenticatedUser($authData['access_token']);
-
-// DiscordService
-$service = new DiscordService();
-$authData = $service->auth($code);
-$response = $service->getAuthenticatedUser($authData['access_token']);
-
-// TwitchService
-$service = new TwitchService();
-$authData = $service->auth($code);
-$response = $service->getAuthenticatedUser($authData['access_token']);
-```
-
-Agora pra finalizar, precisamos dizer pro nosso repositório que há um método polimórfico entrando, e o correto pra isso seria tipar o retorno desse metodo com a **INTERFACE**. Você vai retornar
-
-```php
-
-public function getProvider(string $provider): OAuthContract
+final class AuthController extends Controller
 {
-    return match($provider) {
-        'discord' => new DiscordService(),
-        'twitch' => new TwitchService(),
-        'github' => new GithubService()
+    public function __construct(
+        private readonly AuthService $authService,
+    ) {}
+
+    public function discord(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithDiscord($request->query('code'));
+
+        return response()->json($user);
+    }
+
+    public function twitch(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithTwitch($request->query('code'));
+
+        return response()->json($user);
+    }
+
+    public function github(Request $request): JsonResponse
+    {
+        $user = $this->authService->loginWithGithub($request->query('code'));
+
+        return response()->json($user);
+    }
+}
+```
+
+```php
+// app/Services/AuthService.php
+final class AuthService
+{
+    public function loginWithDiscord(string $code): User
+    {
+        $client = new DiscordClient();
+        $accessToken = $client->authWithDiscord($code);
+        $discordUser = $client->getDiscordUser($accessToken);
+
+        $user = $this->findOrCreateUser('discord', $discordUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    public function loginWithTwitch(string $code): User
+    {
+        $client = new TwitchClient();
+        $accessToken = $client->authWithTwitch($code);
+        $twitchUser = $client->getTwitchUser($accessToken);
+
+        $user = $this->findOrCreateUser('twitch', $twitchUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    public function loginWithGithub(string $code): User
+    {
+        $client = new GithubClient();
+        $accessToken = $client->authWithGithub($code);
+        $githubUser = $client->getGithubUser($accessToken);
+
+        $user = $this->findOrCreateUser('github', $githubUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        $providerColumn = "{$provider}_id";
+        $user = User::query()->firstWhere('email', $providerUser['email']);
+
+        if ($user === null) {
+            return User::query()->create([
+                'name' => $providerUser['name'],
+                'email' => $providerUser['email'],
+                $providerColumn => $providerUser['id'],
+            ]);
+        }
+
+        if ($user->{$providerColumn} === null) {
+            $user->update([$providerColumn => $providerUser['id']]);
+
+            return $user;
+        }
+
+        $isSameAccount = (string) $user->{$providerColumn} === (string) $providerUser['id'];
+
+        if (! $isSameAccount) {
+            throw new AuthenticationException('Este e-mail já está vinculado a outra conta.');
+        }
+
+        return $user;
+    }
+}
+```
+
+Olhando os snippets acima, dá pra ver um padrão que podemos usar para melhorar o código. O fluxo do OAuth é **genérico**: todo provedor troca um `code` por um token de acesso e depois devolve os dados do usuário. Mas o nosso código ainda não entende isso.
+
+Do jeito que está, FUNCIONA. Só que, para cada provedor novo, você precisa mexer na rota, no controller e no service. Dá pra fazer funcionar com uma lógica bem mais bonita.
+
+Vamos juntar as três rotas numa só:
+
+```php
+// routes/web.php
+Route::get('auth/oauth/{provider}', [AuthController::class, 'login']);
+```
+
+Só com essa troca, já dá pra perceber que vamos deixar as coisas mais genéricas, já que existe um padrão. Agora vamos ajustar o controller:
+
+```php
+// app/Http/Controllers/AuthController.php
+final class AuthController extends Controller
+{
+    public function __construct(
+        private readonly AuthService $authService,
+    ) {}
+
+    public function login(Request $request, string $provider): JsonResponse
+    {
+        $user = $this->authService->login($provider, $request->query('code'));
+
+        return response()->json($user);
+    }
+}
+```
+
+O controller passa o provedor para o service, e o service que lute para descobrir qual dos 3 (ou N) clients chamar.
+
+Agora vamos analisar os métodos dos clients que o service chama:
+
+```php
+// DiscordClient
+$accessToken = $client->authWithDiscord($code);
+$providerUser = $client->getDiscordUser($accessToken);
+
+// TwitchClient
+$accessToken = $client->authWithTwitch($code);
+$providerUser = $client->getTwitchUser($accessToken);
+
+// GithubClient
+$accessToken = $client->authWithGithub($code);
+$providerUser = $client->getGithubUser($accessToken);
+```
+
+Existe um padrão, mas os nomes dos métodos, apesar de intuitivos, não são genéricos. Agora, se pararmos e criarmos uma **INTERFACE**, isso muda completamente.
+
+Vamos chamar a nossa interface de `OAuthContract`, com os seguintes métodos:
+
+```php
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
+
+    public function getAuthenticatedUser(string $accessToken): array;
+}
+```
+
+Se todos os clients implementarem essa interface, o PHP vai GARANTIR que os métodos existem. E aí tanto faz qual client chegou. Se liga:
+
+```php
+final class DiscordClient implements OAuthContract { /* ... */ }
+final class TwitchClient implements OAuthContract { /* ... */ }
+final class GithubClient implements OAuthContract { /* ... */ }
+
+$accessToken = $client->getAccessToken($code);
+$providerUser = $client->getAuthenticatedUser($accessToken);
+```
+
+Agora precisamos dizer ao service qual client usar. O jeito certo é tipar o retorno do método com a **INTERFACE**:
+
+```php
+private function resolveClient(string $provider): OAuthContract
+{
+    return match ($provider) {
+        'discord' => new DiscordClient(),
+        'twitch' => new TwitchClient(),
+        'github' => new GithubClient(),
+        default => throw new InvalidArgumentException("Provedor OAuth não suportado: {$provider}"),
     };
 }
 ```
 
-Só tendo a ideia que você pode retornar Classes/Interfaces/Tipos, dá pra entender que você vai retornar uma classe que tenha implementado a interface OAuthContract que irá forçar aqueles métodos genéricos estarem presentes. Caso você tente passar uma classe que não tenha essa interface implementada, vai dar merda.
+Como o retorno é do tipo `OAuthContract`, o método só pode devolver uma classe que implemente essa interface, e é isso que obriga aqueles métodos genéricos a existirem. Se você tentar devolver uma classe sem a interface, vai dar merda (um belo `TypeError`).
 
-Agora, vamos refatorar o Repositório pra receber essa mudança genérica dentro do nosso projeto.
+Agora vamos refatorar o service para receber essa mudança:
 
 ```php
-class AuthRepository {
-
-    public function authenticateOAuth(string $provider, string $code)
+// app/Services/AuthService.php
+final class AuthService
+{
+    public function login(string $provider, string $code): User
     {
-        $service = $this->getProvider($provider);
-        $authData = $service->auth($code);
+        $client = $this->resolveClient($provider);
 
-        $response = $service->getAuthenticatedUser($authData['access_token']);
-        $authUser = $this->findOrCreate($provider, $response);
+        $accessToken = $client->getAccessToken($code);
+        $providerUser = $client->getAuthenticatedUser($accessToken);
 
-        Auth::user($authUser);
-        return true;
+        $user = $this->findOrCreateUser($provider, $providerUser);
+        Auth::login($user);
+
+        return $user;
     }
 
-    public function findOrCreate(string $provider, $providerData): User
+    private function resolveClient(string $provider): OAuthContract
     {
-        $auth = User::where('email', $providerData['email'])->first();
-        if (!$auth) {
-            return User::create([
-                'name' => $providerData['name'],
-                'email' => $providerData['email'],
-                $provider . "_id" => $providerData['id'],
-            ]);
-        }
-
-        if (empty($auth->{$provider . "_id"})) {
-            $auth->update([
-                $provider . "_id" => $providerData['id']
-            ]);
-            return $auth;
-        }
-
-        if ($auth->{$provider . "_id"} == $providerData['id']) {
-            return $auth;
-        }
-
-        throw new \Exception('Algo deu errado');
-    }
-
-    public function getProvider(string $provider): OAuthContract
-    {
-        return match($provider) {
-            'discord' => new DiscordService(),
-            'twitch' => new TwitchService(),
-            'github' => new GithubService(),
-            default => throw new \InvalidArgumentException("Provedor OAuth não suportado: {$provider}")
+        return match ($provider) {
+            'discord' => new DiscordClient(),
+            'twitch' => new TwitchClient(),
+            'github' => new GithubClient(),
+            default => throw new InvalidArgumentException("Provedor OAuth não suportado: {$provider}"),
         };
     }
 
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        // igual ao exemplo anterior
+    }
 }
 ```
 
-Seu software está aberto a extensão, porém fechado para modificação! Congratz você conseguiu chegar até o fim dessa palhaçada.
+## Fechando de vez para modificação
 
-Se seus Services tiverem lindos, maravilhosos e funcionais, você não vai precisar modificá-los. Mas caso você queira implementar um novo provedor de OAuth, basta criar uma nova classe, implementar a interface e adicionar ao match do getProvider e tá lá. Sem modificar o código antigo, apenas aberto a extensão.
+Repare num detalhe: para adicionar o Google, você ainda precisaria abrir o `AuthService` e mexer no `match`. Ou seja, ele ainda não está 100% fechado para modificação.
+
+Para resolver, tiramos a lista de clients de dentro do service e deixamos o container do Laravel entregar tudo pronto:
+
+```php
+// app/Providers/AppServiceProvider.php
+namespace App\Providers;
+
+use App\Services\AuthService;
+use App\Services\OAuth\DiscordClient;
+use App\Services\OAuth\GithubClient;
+use App\Services\OAuth\TwitchClient;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->when(AuthService::class)
+            ->needs('$clients')
+            ->give(fn (Application $app): array => [
+                'discord' => $app->make(DiscordClient::class),
+                'twitch' => $app->make(TwitchClient::class),
+                'github' => $app->make(GithubClient::class),
+            ]);
+    }
+}
+```
+
+```php
+// app/Services/AuthService.php
+namespace App\Services;
+
+use App\Models\User;
+use App\Services\OAuth\OAuthContract;
+use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
+
+final class AuthService
+{
+    /**
+     * @param array<string, OAuthContract> $clients
+     */
+    public function __construct(
+        private readonly array $clients,
+    ) {}
+
+    public function login(string $provider, string $code): User
+    {
+        $client = $this->clients[$provider]
+            ?? throw new InvalidArgumentException("Provedor OAuth não suportado: {$provider}");
+
+        $accessToken = $client->getAccessToken($code);
+        $providerUser = $client->getAuthenticatedUser($accessToken);
+
+        $user = $this->findOrCreateUser($provider, $providerUser);
+        Auth::login($user);
+
+        return $user;
+    }
+
+    private function findOrCreateUser(string $provider, array $providerUser): User
+    {
+        // igual ao exemplo anterior
+    }
+}
+```
+
+Seu software agora está aberto para extensão, mas fechado para modificação! Parabéns, você chegou ao fim dessa palhaçada.
+
+Se os seus clients estiverem lindos, maravilhosos e funcionando, você não vai precisar mexer neles. E, se quiser adicionar um provedor novo, como o Google, basta:
+
+1. Criar a classe `GoogleClient` implementando `OAuthContract`;
+2. Registrar `'google'` no `AppServiceProvider`.
+
+Nenhuma linha do `AuthService`, do controller ou das rotas precisa mudar.
+
+> **Na vida real:** o [Laravel Socialite](https://laravel.com/docs/socialite) já resolve login OAuth aplicando exatamente essa ideia: um driver por provedor, todos com a mesma interface.
 
 ---
 

@@ -1,278 +1,271 @@
 # 1 - Single Responsibility Principle
 
-O Princípio da Responsabilidade Única se dá a ideia de que o software deverá ser particionado em blocos de responsabilidade dentro do ecossistema produzido. Quando vemos os famosos "códigos de rua", onde você enfia todo o projeto num único arquivo ou classe, sempre dá aquela preguiça de refatorar porquê não tem legibilidade nem manutenibilidade além de estar tudo em um único ~fucking~ arquivo. É foda né?
+O Princípio da Responsabilidade Única diz que o software deve ser dividido em blocos, e cada bloco cuida de uma única responsabilidade. Sabe aqueles famosos "códigos de rua", onde você enfia o projeto inteiro num único arquivo ou classe? Sempre dá aquela preguiça de refatorar, porque não tem legibilidade, não tem manutenibilidade e ainda está tudo num único ~~fucking~~ arquivo. É foda, né?
 
-O SRP vem para organizar melhor esse arquivo/projeto monolito, e descentralizar o código em responsabilidades. Pense nisso como um melhor uso dos **namespaces** dentro do seu projeto.
+O SRP vem para organizar esse arquivo/projeto monolítico e distribuir o código por responsabilidades. Pense nisso como um uso melhor dos **namespaces** do seu projeto.
 
 ```
-App
-├── Http
-│   └── Controllers
-│       └── MessagesController.php
-├── Models
-│   └── Message.php
+app
 ├── Events
-│   └── ChatMessage.php
+│   └── MessageSent.php
+├── Http
+│   └── Controllers
+│       └── MessageController.php
+└── Models
+    └── Message.php
 ```
 
-Cada uma das pastas acima tem uma responsabilidade. Sendo elas:
+Cada uma das pastas acima tem uma responsabilidade:
 
-- Controller -> Receber, processar e responder requisições;
-- Model -> Comunicar com o banco de dados;
-- Event -> Disparar mensageria.
+- **Controller** → receber, processar e responder requisições;
+- **Model** → conversar com o banco de dados;
+- **Event** → avisar o resto do sistema que algo aconteceu.
 
-Podemos dizer que isso está interessante? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desse código. Será que eles realmente mantêm a responsabilidade ou existem mais coisas dentro?
+Isso já está bom? Talvez sim, talvez não. Afinal, não sabemos o que está escrito dentro desses arquivos. Será que cada um mantém a sua responsabilidade ou tem mais coisa lá dentro?
 
-<center>
-"A class should have only one reason to change"
+> "A class should have only one reason to change."
+>
+> "Uma classe deve ter apenas um motivo para mudar."
 
-"Uma classe deve ter apenas uma razão para mudar"
-</center>
+Vamos imaginar um chat qualquer, onde um usuário envia e recebe mensagens. Nesse cenário, vamos salvar todas as mensagens do usuário no banco de dados depois de uma validação.
 
-Vamos imaginar um cenário onde temos um chat qualquer e nele temos um usuário que mande e receba mensagens. Nesse cenário, nós vamos salvar todas as mensagens do nosso usuário no banco de dados após uma validação.
+Vamos usar o ecossistema do Laravel, onde a porta de entrada é o Controller. O Controller tem como responsabilidade:
 
-Iremos utilizar o ecossistema do Laravel, onde temos como entrada o Controller. O Controlador tem como responsabilidade:
-
-- Receber uma requisição;
+- Receber a requisição;
 - Processar a requisição;
 - Responder o cliente.
 
 ```php
 namespace App\Http\Controllers;
 
-use DB;
-use Illuminate\Foundation\Http\Request;
-use App\Events\ChatMessage;
-use Illuminate\Support\Facades\Log;
+use App\Events\MessageSent;
 use App\Models\Message;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
-class MessagesController extends Controller {
-
-    public function postMessage(Request $request) {
-        $this->validate($request, [
-            'user_id' => 'required|exists:users,id',
-            'message' => 'required'
+final class MessageController extends Controller
+{
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'message' => ['required', 'string', 'max:500'],
         ]);
 
-        $data = $request->all(); // Changed from $request->validated() to $request->all() to match the original validation flow before FormRequest.
+        $isFlooding = $this->countRepeatedMessages($data['user_id'], $data['message']) >= 5;
 
-        if ($this->getUserSpecificMessagesCount($data['user_id'], $data['message']) >= 5) {
+        if ($isFlooding) {
             Log::alert('[User Alert] Flooding', $data);
         }
 
-        $model = Message::create($request->all());
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($data);
+        broadcast(new MessageSent($message));
 
-        return response()->json(['message' => 'message created'], 201);
+        return response()->json(['message' => 'Message created.'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+    private function countRepeatedMessages(int $userId, string $content): int
+    {
+        return Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
     }
-
 }
 ```
 
-Vamos listar o que podemos ver no snippet do MessagesController:
+Vamos listar o que o `MessageController` faz:
 
-- Ele recebe uma requisição;
-- Valida a entrada dos dados;
-- Checa se deve disparar um alerta de flooding;
+- Recebe a requisição;
+- Valida os dados de entrada;
+- Verifica se deve disparar um alerta de flood;
 - Cria um novo registro de mensagem no banco de dados;
-- Transmite uma mensagem para algum canal;
+- Transmite a mensagem para algum canal;
 - Responde o cliente.
 
-Agora pensando na responsabilidade que o controller deveria ter, podemos ver que foi um pouco além e isso não é o esperado.
+Se pensarmos na responsabilidade que um controller deveria ter, dá pra ver que ele foi bem além do esperado.
 
-Vamos começar a refatorar de cima para baixo, começando pela validação. No ecossistema Laravel, existe um jeito de validar requisições onde você isola a responsabilidade em uma classe de Request.
+Vamos refatorar de cima para baixo, começando pela validação. No Laravel, existe um jeito de isolar essa responsabilidade numa classe de **Form Request**.
 
-Utilizando o comando **php artisan make:request CreateMessageRequest** você irá gerar uma classe validadora que ficará no namespace **App\Http\Requests** que terá a responsabilidade **ÚNICA** de validar sua requisição e nada mais:
+O comando `php artisan make:request StoreMessageRequest` gera uma classe no namespace `App\Http\Requests` com a responsabilidade **ÚNICA** de validar a requisição, e nada mais:
 
 ```php
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateMessageRequest extends FormRequest
+final class StoreMessageRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
-            'message' => 'required'
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'message' => ['required', 'string', 'max:500'],
         ];
     }
 }
 ```
 
-Agora nós vamos implementar isso no nosso snippet acima.
+Agora vamos usar essa classe no controller:
 
 ```php
 namespace App\Http\Controllers;
 
-use DB;
-use App\Http\Requests\CreateMessageRequest;
-use App\Events\ChatMessage;
+use App\Events\MessageSent;
+use App\Http\Requests\StoreMessageRequest;
+use App\Models\Message;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
-class MessagesController extends Controller {
-
-    public function postMessage(CreateMessageRequest $request) {
+final class MessageController extends Controller
+{
+    public function store(StoreMessageRequest $request): JsonResponse
+    {
         $data = $request->validated();
 
-        if ($this->getUserSpecificMessagesCount($data['user_id'], $data['message']) >= 5) {
+        $isFlooding = $this->countRepeatedMessages($data['user_id'], $data['message']) >= 5;
+
+        if ($isFlooding) {
             Log::alert('[User Alert] Flooding', $data);
         }
 
-        $model = Message::create($data);
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($data);
+        broadcast(new MessageSent($message));
 
-        return response()->json(['message' => 'message created'], 201);
+        return response()->json(['message' => 'Message created.'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+    private function countRepeatedMessages(int $userId, string $content): int
+    {
+        return Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
     }
-
 }
 ```
 
-Beleza, separamos a nossa validação da função principal. Agora precisamos extrair a regra de negócio para uma nova camada de abstração, que é conhecida como **Repository Pattern**. A ideia do Repository Pattern é você ter um local para trabalhar funções que se comunicam com banco de dados, envio de mensageria e mais o que você quiser. É literalmente onde você injeta suas regras de negócio.
+Beleza, a validação saiu do controller. Agora precisamos levar a regra de negócio para uma nova camada, conhecida como **Service Layer**. A ideia é ter um lugar para as regras de negócio: conversar com o banco, disparar eventos, mandar e-mail e o que mais o seu caso de uso precisar.
 
-PS: O Repository Pattern não é a última camada de abstração, na realidade você pode abstrair quantas você quiser para que o seu código fique o mais legível possível.
+> **PS:** a Service Layer não é a última camada de abstração possível. Você pode criar quantas camadas fizerem sentido para deixar o código legível. Só não crie camada por esporte.
 
 ```php
-namespace App\Repositories;
+namespace App\Services;
 
+use App\Events\MessageSent;
 use App\Models\Message;
-use App\Events\ChatMessage;
+use Illuminate\Support\Facades\Log;
 
-class MessageRepository {
+final class MessageService
+{
+    private const int FLOOD_LIMIT = 5;
 
-    private $model;
-
-    public function __construct()
+    public function create(array $payload): Message
     {
-        $this->model = new Message();
-    }
-
-    public function create(array $payload): bool
-    {
-        if ($this->checkFloodPossibility($payload['user_id'], $payload['message'])) {
+        if ($this->isFlooding($payload['user_id'], $payload['message'])) {
             Log::alert('[User Alert] Flooding', $payload);
         }
 
-        $model = Message::create($payload);
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($payload);
+        broadcast(new MessageSent($message));
 
-        return true;
+        return $message;
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+    private function isFlooding(int $userId, string $content): bool
+    {
+        $repeatedMessages = Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
+
+        return $repeatedMessages >= self::FLOOD_LIMIT;
     }
 }
 ```
 
-Após nós criarmos nosso repositório e jogarmos toda a responsabilidade devida nele, vamos ter três maneiras de colocar ele no nosso controller
+Com o service criado e cada responsabilidade no seu lugar, temos três formas de usá-lo no controller:
 
-1. Instanciando a classe direto na função
-
-    ``` php
-    $repository = new MessageRepository();
-    ```
-2. Injetando a dependência no construtor da classe e
+1. Instanciando a classe direto no método:
 
     ```php
-    class MessagesController {
-        public $repository;
+    $messageService = new MessageService();
+    ```
 
-        public function __construct(MessageRepository $repository)
-        {
-            $this->repository = $repository;
-        }
+2. Injetando a dependência no construtor da classe:
+
+    ```php
+    final class MessageController extends Controller
+    {
+        public function __construct(
+            private readonly MessageService $messageService,
+        ) {}
     }
     ```
-3. Usando os containers do Laravel
+
+3. Pedindo a instância ao container do Laravel:
 
     ```php
-    $repository = app(MessageRepository::class)->create();
+    $messageService = app(MessageService::class);
     ```
 
-No nosso código, iremos utilizar a Injeção de Dependência para que possamos ter uma visão melhor do código. Particularmente é a que mais faz sentido pra mim, tendo em vista que temos que manter o código organizado.
-
+No nosso código, vamos usar a **Injeção de Dependência** pelo construtor. Para mim, é a opção que mais faz sentido: as dependências da classe ficam explícitas logo no topo, e o Laravel resolve tudo sozinho.
 
 ```php
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CreateMessageRequest;
-use App\Repositories\MessageRepository;
+use App\Http\Requests\StoreMessageRequest;
+use App\Services\MessageService;
+use Illuminate\Http\JsonResponse;
 
-class MessagesController extends Controller {
+final class MessageController extends Controller
+{
+    public function __construct(
+        private readonly MessageService $messageService,
+    ) {}
 
-    private $repository;
-
-    public function __construct(MessageRepository $repository)
+    public function store(StoreMessageRequest $request): JsonResponse
     {
-        $this->repository = $repository;
+        $this->messageService->create($request->validated());
+
+        return response()->json(['message' => 'Message created.'], 201);
     }
-
-    public function postMessage(CreateMessageRequest $request): JsonResponse
-    {
-        $data = $request->validated();
-
-        $this->repository->create($data);
-
-        return response()->json(['message' => 'message created'], 201);
-    }
-
 }
 ```
 
-Com isso, nosso código ficou bem mais limpo e organizado. Cada uma das responsabilidades foram distribuídas e o código do controlador foi concluído como o especificado antes de começar o código, onde você: recebe a requisição, passa a responsabilidade após a validação e responde o cliente.
+Com isso, o código ficou bem mais limpo e organizado. Cada responsabilidade foi para o seu lugar, e o controller voltou a fazer só o que combinamos no começo: receber a requisição, repassar o trabalho e responder o cliente.
+
+Agora cada classe tem **um único motivo para mudar**:
+
+| Classe                | Motivo para mudar                                   |
+| --------------------- | --------------------------------------------------- |
+| `StoreMessageRequest` | As regras de validação mudaram                      |
+| `MessageService`      | A regra de negócio mudou (ex.: o limite de flood)   |
+| `MessageController`   | O formato da requisição ou da resposta HTTP mudou   |
 
 ```
-App
-├── Http
-│   └── Controllers
-│       └── MessagesController.php
-│       Requests
-│       └── CreateMessageRequest.php
-├── Models
-│   └── Message.php
+app
 ├── Events
-│   └── ChatMessage.php
-└── Repositories
-    └── MessageRepository.php
+│   └── MessageSent.php
+├── Http
+│   ├── Controllers
+│   │   └── MessageController.php
+│   └── Requests
+│       └── StoreMessageRequest.php
+├── Models
+│   └── Message.php
+└── Services
+    └── MessageService.php
 ```
-
 
 ---
 
 ## Navegação
 
 [← Introdução](0-introducao.md) • [2 – Open-Closed Principle](2-ocp.md) • [3 – Liskov Substitution Principle](3-lsp.md) • [4 – Interface Segregation Principle](4-isp.md) • [5 – Dependency Inversion Principle](5-dip.md)
-

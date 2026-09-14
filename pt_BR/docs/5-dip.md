@@ -1,106 +1,119 @@
-# Dependency Inversion Principle
+# 5 - Dependency Inversion Principle
 
-O Princípio de Inversão de Dependência tem algumas caracteristicas que poderiam assimilar à **Injeção de Dependência**, porém não é bem assim.
+O Princípio da Inversão de Dependência costuma ser confundido com a **Injeção de Dependência**, mas não é a mesma coisa:
 
-Todos os princípios listados até o momento são dados baseado em INTERFACES e o SOLID em si foi escrito e pensado enquanto desenvolvendo com interfaces, por ser possível deixar genérico boa parte do código e a legibilidade crescer cada vez mais.
+- **Injeção de Dependência (DI)** é uma técnica: a classe recebe as dependências de fora (pelo construtor, por exemplo) em vez de criá-las;
+- **Inversão de Dependência (DIP)** é um princípio: ele diz **de que tipo** essas dependências devem ser.
 
-Agora, vamos entender sobre os dogmas do DIP:
+Você pode usar DI e mesmo assim quebrar o DIP. Já já você vai ver.
+
+Todos os princípios que vimos até agora giram em torno de INTERFACES. O SOLID foi pensado para desenvolver com interfaces, porque elas deixam boa parte do código genérica e a legibilidade só cresce.
+
+Agora, vamos entender os dogmas do DIP:
 
 - Módulos de alto nível não devem depender de módulos de baixo nível. Ambos devem depender de abstrações;
-- Abstrações não devem depender de detalhes. Detalhes (implementações concretas) devem depender das abstrações.
+- Abstrações não devem depender de detalhes. Detalhes (implementações concretas) devem depender de abstrações.
 
-Esse conceito é bem difícil de achar algo no nosso exemplo anterior para aplicar, pois o Laravel em si foi arquitetado seguindo o SOLID. Então, vamos pegar um exemplo qualquer para aplicar o que precisa.
+Traduzindo: **módulo de alto nível** é quem orquestra a regra de negócio (ex.: "enviar uma mensagem no chat"). **Módulo de baixo nível** é quem cuida dos detalhes (ex.: como cada tipo de usuário recebe essa mensagem).
 
-Digamos que nossa aplicação tenha dois tipos de usuários: Usuários padrões e Administradores. Ambos são autenticáveis e você tem uma mensageria entre eles. Já vamos aplicar o ISP pra ficar bonito, né?
+Digamos que a nossa aplicação tenha dois tipos de usuário: usuários comuns e administradores. Os dois podem se autenticar e trocar mensagens entre si. Já vamos aplicar o ISP para ficar bonito, né?
 
 ```php
-interface Authenticable {
-    public function auth(): bool;
+interface Authenticatable
+{
+    public function authenticate(): bool;
 }
 
-interface Messenger {
+interface Messenger
+{
     public function prepareMessage(string $message): string;
 
     public function sendMessage(string $message): bool;
 }
 
-class User implements Authenticable, Messenger {
-
+final class User implements Authenticatable, Messenger
+{
+    // ...
 }
 
-class Administrator implements Authenticable, Messenger {
-
+final class Administrator implements Authenticatable, Messenger
+{
+    // ...
 }
 
-class ChatMessage {
-
-    public $model;
-
+final readonly class SendChatMessage
+{
     public function __construct(
-        private readonly Administrator $model,
-        private readonly string $message
+        private Administrator $recipient,
+        private string $message,
     ) {}
 
     public function handle(): bool
     {
-        $prepared = $this->model->prepareMessage($this->message);
-        return $this->model->sendMessage($prepared);
+        $preparedMessage = $this->recipient->prepareMessage($this->message);
+
+        return $this->recipient->sendMessage($preparedMessage);
     }
 }
 ```
 
-Se pararmos para pensar, o nosso módulo de alto nível aqui nesse exemplo é o ChatMessage e ele está DEPENDENDO de um módulo de baixo nível, que é a classe Administrator. Segundo o nosso quinto princípio, isso já tá erradasso pois ambos devem depender da abstração.
+Se pararmos para pensar, o módulo de alto nível desse exemplo é o `SendChatMessage`, e ele DEPENDE de um módulo de baixo nível: a classe `Administrator`. Pelo quinto princípio, isso já está erradasso, pois os dois deveriam depender de uma abstração.
 
-"Mas como assim? Injetei a dependência e ele FUNCIONA!!!! Né?"
+"Mas como assim? Eu injetei a dependência e FUNCIONA!!!! Né?"
 
-Funciona, mas você esqueceu que você deve mandar mensagens para o usuário `User` também, né? Então seria interessante INVERTER a dependência para que possa ser usado baseado nas abstrações.
+Funciona. Mas você esqueceu que também precisa mandar mensagens para o `User`, né? Do jeito que está, você teria que criar um `SendChatMessageToUser`, e depois mais uma classe para cada tipo novo de usuário. Então vale INVERTER a dependência e depender da abstração:
 
 ```php
-interface Authenticable {
-    public function auth(): bool;
-}
-
-interface Messenger {
-    public function prepareMessage(string $message): string;
-
-    public function sendMessage(string $message): bool;
-}
-
-class User implements Authenticable, Messenger {
-
-}
-
-class Administrator implements Authenticable, Messenger {
-
-}
-
-class ChatMessage {
-
-    public $model;
-
+final readonly class SendChatMessage
+{
     public function __construct(
-        private readonly Authenticable $model,
-        private readonly string $message
+        private Messenger $recipient,
+        private string $message,
     ) {}
 
     public function handle(): bool
     {
-        $prepared = $this->model->prepareMessage($this->message);
-        return $this->model->sendMessage($prepared);
+        $preparedMessage = $this->recipient->prepareMessage($this->message);
+
+        return $this->recipient->sendMessage($preparedMessage);
     }
 }
 ```
 
-Nossa dependência agora está invertida. Não precisamos nos preocupar em fazer N classes para o mesmo processo, sendo que agora é tudo mantido em abstrações.
+Repare que a dependência agora é `Messenger`, e não `Authenticatable`: o `SendChatMessage` só precisa preparar e enviar mensagens. É o ISP ajudando a escolher a menor abstração possível.
 
-**Módulo de alto nível** (ChatMessage) depende de **abstração** (Authenticable)  
-**Módulos de baixo nível** (User, Administrator) dependem de **abstração** (Authenticable)
+Nossa dependência agora está invertida. Não precisamos criar N classes para o mesmo processo, já que tudo depende de abstrações:
 
-Isso é o que significa "inversão": em vez do alto nível depender do baixo nível, ambos dependem da abstração.
+```text
+ANTES                                   DEPOIS
+
+┌─────────────────┐                     ┌─────────────────┐
+│ SendChatMessage │                     │ SendChatMessage │
+│  (alto nível)   │                     │  (alto nível)   │
+└────────┬────────┘                     └────────┬────────┘
+         │ depende de                            │ depende de
+         ▼                                       ▼
+┌─────────────────┐                     ┌─────────────────┐
+│  Administrator  │                     │   «interface»   │
+│  (baixo nível)  │                     │    Messenger    │
+└─────────────────┘                     └────────▲────────┘
+                                                 │ implementam
+                                        ┌────────┴────────┐
+                                  ┌─────┴─────┐   ┌───────┴───────┐
+                                  │   User    │   │ Administrator │
+                                  └───────────┘   └───────────────┘
+```
+
+Resumindo:
+
+- **Módulo de alto nível** (`SendChatMessage`) depende de uma **abstração** (`Messenger`);
+- **Módulos de baixo nível** (`User`, `Administrator`) implementam essa **abstração** (`Messenger`).
+
+É isso que significa "inversão": em vez de o alto nível depender do baixo nível, os dois dependem da abstração. E repare que o código de antes já usava injeção de dependência. Injetar não basta: o que importa é **o tipo** que você injeta.
 
 E é isso! Fim do SOLID4Noobs!
 
-Espero que você tenha curtido o conteúdo e se você quiser ver mais coisas como essa sendo aplicação em tempo real, considere se [inscrever no meu canal da twitch!](https://twitch.tv/danielhe4rt)
+Espero que você tenha curtido o conteúdo. Se quiser ver mais coisas assim sendo aplicadas ao vivo, considere [me seguir na Twitch](https://twitch.tv/danielhe4rt)!
 
 Até a próxima! =)
 
