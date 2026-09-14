@@ -1,277 +1,268 @@
 # 1 - Single Responsibility Principle
 
-The 'Single Responsibility Principle' has the idea of the software should be partitioned in responsibility block inside the project ecossystem. When we see the famous "dirty code", where you stick all the code inside a single file or class, you'll always have that lazyness to refactoring it because the code is not readable/mainantanable, besides that it is in a whole ~fucking~ file or class.
+The Single Responsibility Principle says that software should be split into blocks, and each block takes care of a single responsibility. You know that famous "dirty code", where the whole project is stuffed inside a single file or class? You always feel too lazy to refactor it, because it's neither readable nor maintainable, and on top of that everything lives in one ~~fucking~~ file. It sucks, right?
 
-SRP came to organize better these monolith class/functions, and descentralize the code responsibilities. Think in that as a better use of **namespaces** inside your project.
+SRP comes to organize that monolithic file/project and spread the code across responsibilities. Think of it as a better use of **namespaces** in your project.
 
 ```
-App
-├── Http
-│   └── Controllers
-│       └── MessagesController.php
-├── Models
-│   └── Message.php
+app
 ├── Events
-│   └── ChatMessage.php
+│   └── MessageSent.php
+├── Http
+│   └── Controllers
+│       └── MessageController.php
+└── Models
+    └── Message.php
 ```
 
-Each of the folders above has a responsibility, being them:
+Each of the folders above has a responsibility:
 
-- Controller -> Receive, process and return responses for requests;
-- Model -> Communicate with Database;
-- Event -> Dispatch Events.
+- **Controller** → receive, process, and respond to requests;
+- **Model** → talk to the database;
+- **Event** → tell the rest of the system that something happened.
 
-We can say that is already good? Maybe yes, maybe not. After all, we don't know what is written inside these files.
-Does they really maintain the responsibility or exists more stuff inside?
+Is this already good? Maybe yes, maybe not. After all, we don't know what is written inside these files. Does each one really keep its responsibility, or is there more stuff inside?
 
-<p class="text-align: center;">
-    "A class should have only one reason to change"
-</p>
+> "A class should have only one reason to change."
 
-Lets imagine a scenario where we have a random chat and there we have an user that sends and receives messages. On this scenario, we're going to save all messages from our user on database after the validation.
+Let's imagine a random chat where a user sends and receives messages. In this scenario, we're going to save every message from the user in the database after a validation.
 
-We're going to use the Laravel ecossystem, where the request entrance will be the Controller. 
-The Controller has as responsibility:
+We're going to use the Laravel ecosystem, where the entry point is the Controller. The Controller is responsible for:
 
-- Receive a Request;
-- Process a Request;
-- Return a Response for the Request.
+- Receiving the request;
+- Processing the request;
+- Responding to the client.
 
 Here is the snippet:
 
 ```php
 namespace App\Http\Controllers;
 
-use DB;
-use Illuminate\Foundation\Http\Request;
+use App\Events\MessageSent;
+use App\Models\Message;
 use Illuminate\Http\JsonResponse;
-use App\Events\ChatMessage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class MessagesController extends Controller 
+final class MessageController extends Controller
 {
-
-    public function postMessage(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        $this->validate($request, [
-            'user_id' => 'required|exists:users,id',
-            'message' => 'required'
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'message' => ['required', 'string', 'max:500'],
         ]);
 
-        // $data is obtained from validated request below
-        if ($this->getUserSpecificMessagesCount($data['message']) >= 5) {
+        $isFlooding = $this->countRepeatedMessages($data['user_id'], $data['message']) >= 5;
+
+        if ($isFlooding) {
             Log::alert('[User Alert] Flooding', $data);
         }
 
-        $model = Message::create($request->all());
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($data);
+        broadcast(new MessageSent($message));
 
-        return response()->json(['message' => 'message created'], 201);
+        return response()->json(['message' => 'Message created.'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    private function countRepeatedMessages(int $userId, string $content): int
     {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+        return Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
     }
-
 }
 ```
 
-Let's list what the can see on the MessagesController snippet
+Let's list what the `MessageController` does:
 
-- Receive the request;
-- Validate the data;
-- Check a possibility of flooding;
-- Create a new register of the message on Database;
-- Broadcast the message to some channel;
-- Return a message to the client.
+- Receives the request;
+- Validates the input;
+- Checks whether it should fire a flooding alert;
+- Creates a new message record in the database;
+- Broadcasts the message to some channel;
+- Responds to the client.
 
-Now thinking in the responsibility that controller should have, we can see that was a little bit far from that and it was not expected.
+If we think about the responsibility a controller should have, we can see it went way beyond what was expected.
 
-Let's start to refactoring from top to bottom, starting by the validation. On the Laravel ecossystem, there's a way to validate requests where you isolate the responsibility in a FormRequest Class.
+Let's refactor from top to bottom, starting with the validation. Laravel has a way to isolate this responsibility in a **Form Request** class.
 
-Using the command **php artisan make:request CreateMessageRequest** you will generate a FormRequest class that will appear on the folder/namespace **App\Http\Requests** that will have the **UNIQUE** responsibility of validate your request and nothing else:
+The command `php artisan make:request StoreMessageRequest` generates a class in the `App\Http\Requests` namespace with the **SINGLE** responsibility of validating the request, and nothing else:
 
 ```php
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateMessageRequest extends FormRequest
+final class StoreMessageRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
-            'message' => 'required'
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'message' => ['required', 'string', 'max:500'],
         ];
     }
 }
 ```
 
-Now we're going to implement the solution on our snippet above and it should look like this:
+Now let's use this class in the controller:
 
 ```php
 namespace App\Http\Controllers;
 
-use DB;
-use App\Http\Requests\CreateMessageRequest;
-use App\Events\ChatMessage;
+use App\Events\MessageSent;
+use App\Http\Requests\StoreMessageRequest;
+use App\Models\Message;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
-class MessagesController extends Controller 
+final class MessageController extends Controller
 {
-
-    public function postMessage(CreateMessageRequest $request): JsonResponse
+    public function store(StoreMessageRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        if ($this->getUserSpecificMessagesCount($data['message']) >= 5) {
+        $isFlooding = $this->countRepeatedMessages($data['user_id'], $data['message']) >= 5;
+
+        if ($isFlooding) {
             Log::alert('[User Alert] Flooding', $data);
         }
 
-        $model = Message::create($data);
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($data);
+        broadcast(new MessageSent($message));
 
-        return response()->json(['message' => 'message created'], 201);
+        return response()->json(['message' => 'Message created.'], 201);
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    private function countRepeatedMessages(int $userId, string $content): int
     {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+        return Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
     }
-
 }
 ```
 
-Alright, we separated the validation of our main function. Now we have to extract the business rule to a new abstractiong layer, that is known as **Service Pattern**. The idea of Service Pattern is you have a place to work with methods/classes that feeds your business logic, mailing and whatever else you need it. 
+Alright, the validation is out of the controller. Now we have to move the business rules into a new layer, known as the **Service Layer**. The idea is to have a place for your business rules: talking to the database, dispatching events, sending emails, and whatever else your use case needs.
 
-PS: The Service Pattern is not the last abstractiong layer, in the reality you can abstract how many layers you want for your code being more readable as possible.
+> **PS:** the Service Layer is not the last possible abstraction layer. You can create as many layers as make sense to keep your code readable. Just don't create layers for sport.
 
 ```php
-namespace App\Repositories;
+namespace App\Services;
 
+use App\Events\MessageSent;
 use App\Models\Message;
-use App\Events\ChatMessage;
+use Illuminate\Support\Facades\Log;
 
-class MessagesService 
+final class MessageService
 {
-
-    public function __construct(private readonly Message $model)
-    {
-    }
+    private const int FLOOD_LIMIT = 5;
 
     public function create(array $payload): Message
     {
-        if ($this->checkFloodPossibility($data['message'])) {
-            Log::alert('[User Alert] Flooding', $data)
+        if ($this->isFlooding($payload['user_id'], $payload['message'])) {
+            Log::alert('[User Alert] Flooding', $payload);
         }
 
-        $message = Message::create($payload);
-        broadcast(new ChatMessage($model));
+        $message = Message::query()->create($payload);
+        broadcast(new MessageSent($message));
 
         return $message;
     }
 
-    public function getUserSpecificMessagesCount(int $userId, string $message): int
+    private function isFlooding(int $userId, string $content): bool
     {
-        return DB::table('user_messages')->where([
-            ['user_id', '=', $userId],
-            ['message', '=', $message],
-        ])->count();
+        $repeatedMessages = Message::query()
+            ->where('user_id', $userId)
+            ->where('message', $content)
+            ->count();
+
+        return $repeatedMessages >= self::FLOOD_LIMIT;
     }
 }
 ```
-After we create our service and throw all the due responsibility there, we'll have three ways to invoke it on our controller:
 
-1. Instantiate directly inside the function
+With the service in place and every responsibility where it belongs, we have three ways to use it in the controller:
 
-    ``` php
-    $repository = new MessagesService();
-    ```
-2. Injecting the dependency on the class constructor 
-
-```php
-class MessagesController 
-{
-	public function __construct(public readonly MessagesService $service)
-	{
-	}
-}
-```
-1. Using Laravel Containers
+1. Instantiating the class directly inside the method:
 
     ```php
-    $repository = app(MessagesService::class)->create();
+    $messageService = new MessageService();
     ```
 
-In our code, we're going to use Dependency Injection so we can have a better view of the code.
-Particularly is the one who makes more sense to me, have in sight that we have to maintaing the the code cleaner as possible.
+2. Injecting the dependency through the class constructor:
 
+    ```php
+    final class MessageController extends Controller
+    {
+        public function __construct(
+            private readonly MessageService $messageService,
+        ) {}
+    }
+    ```
+
+3. Asking the Laravel container for an instance:
+
+    ```php
+    $messageService = app(MessageService::class);
+    ```
+
+In our code, we're going to use constructor **Dependency Injection**. To me, it's the option that makes the most sense: the class dependencies are explicit right at the top, and Laravel resolves everything for you.
 
 ```php
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CreateMessageRequest;
-use App\Repositories\MessageRepository;
+use App\Http\Requests\StoreMessageRequest;
+use App\Services\MessageService;
+use Illuminate\Http\JsonResponse;
 
-class MessagesController extends Controller 
+final class MessageController extends Controller
 {
-    public function __construct(private readonly MessagesService $service)
+    public function __construct(
+        private readonly MessageService $messageService,
+    ) {}
+
+    public function store(StoreMessageRequest $request): JsonResponse
     {
+        $this->messageService->create($request->validated());
+
+        return response()->json(['message' => 'Message created.'], 201);
     }
-
-    public function postMessage(CreateMessageRequest $request): JsonResponse
-    {   
-        $this->service->create(
-	        $request->validated()
-        );
-
-        return response()->json(['message' => 'message created'], 201);
-    }
-
 }
 ```
 
-With that, our code become a lot more organized and cleaner to read. Each one of responsibilities was distributed
-and the Controller responsibilities was followed like we told on the beginning of this article: receive, process and response. 
+With that, our code became a lot cleaner and more organized. Each responsibility went to its place, and the controller went back to doing only what we agreed on at the beginning: receive the request, hand off the work, and respond to the client.
+
+Now each class has **a single reason to change**:
+
+| Class                 | Reason to change                                     |
+| --------------------- | ---------------------------------------------------- |
+| `StoreMessageRequest` | The validation rules changed                         |
+| `MessageService`      | The business rule changed (e.g. the flooding limit)  |
+| `MessageController`   | The HTTP request or response format changed          |
 
 ```
-App
-├── Http
-│   └── Controllers
-│       └── MessagesController.php
-│       Requests
-│       └── CreateMessageRequest.php
-├── Models
-│   └── Message.php
+app
 ├── Events
-│   └── ChatMessage.php
+│   └── MessageSent.php
+├── Http
+│   ├── Controllers
+│   │   └── MessageController.php
+│   └── Requests
+│       └── StoreMessageRequest.php
+├── Models
+│   └── Message.php
 └── Services
-    └── MessageService.php
+    └── MessageService.php
 ```
-
 
 ---
 

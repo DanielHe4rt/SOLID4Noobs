@@ -1,45 +1,52 @@
-# 3. Liskov Substitution Principle
+# 3 - Liskov Substitution Principle
 
+> "Let **q(x)** be a property provable about objects **x** of type **T**. Then **q(y)** should be true for objects **y** of type **S**, where **S** is a subtype of **T**."
+>
+> — Barbara Liskov and Jeannette Wing
 
-"Let **q(x)** be a property provable about object **x** of type **T**. Then **q(y)** should be true for objects **y** of type **S** where **S** is a subtype of **T**."
+Well, you don't have to understand this confusing formal definition. Would it be nice? Sure. But let's explain it using PHP.
 
-Well, you don't have to understand this confusing formal definition above. It would be nice to understand? Probably. But let's explain it using PHP.
+In everyday terms: **if your code works with a type, it must keep working with any subclass or implementation of that type, without needing to know which one it got.**
 
-We saw a lot of code on the previous principle, where we let the code more generic using OCP. But, something very important was missing. The return of the implement methods where we implemented the interfaces.
+In the previous principle, we made the code generic using OCP. But something very important was left behind: **what** the interface methods return.
 
+Alright, first a quick review about inheritance.
 
-Alright, a quick review about inheritance:
-
-When you extends a parent class to a child, you inherit all the public/protected methods. And of course, you can override those methods.
+When a child class extends a parent class, it inherits all the public and protected methods. And of course, it can override those methods:
 
 ```php
-class Model {
-    public function store(): bool {
+class Model
+{
+    public function save(): bool
+    {
         return true;
     }
 }
 
-class User extends Model {
-    public function store(): array { // ❌ Fatal error: Return type must be bool
-        return ['success'];
+class User extends Model
+{
+    public function save(): array // ❌ Fatal error: Declaration of User::save(): array must be compatible with Model::save(): bool
+    {
+        return ['success' => true];
     }
 }
 ```
 
-If you want to understand the Liskov's Principle, the first thing you need to know is how to develop with **Contracts/Interfaces**. We saw something about it on OCP, but you saw the example above: on the parent class the return of method store is **boolean** and on the child class the return is an **array** and it breaks completely the worked principle.
+Here PHP doesn't even let the code run: the parent class promises a `bool`, and the child tries to return an `array`. When you override a method, its signature must be **compatible** with the parent's:
 
-In theory, if you override something, you **HAVE** to keep the return type from the parent. If, the parent function returns X **fn parent(): x**, the override function should return X **fn children(): x**.
+- **Return type:** the same as the parent's or more specific (if the parent returns `?User`, the child can return `User`);
+- **Parameters:** the same as the parent's or broader (if the parent accepts `int`, the child can accept `int|string`).
 
-Until now we don't see any contract being implemented. But, what is a contract?
+But PHP only checks the **signature**. It doesn't check the **behavior**. And that's where Liskov lives.
 
-Contract is a given name to **Interfaces**, where you can say which functions will be necessary to implement.
+To really understand this principle, you need to know how to develop with CONTRACTS. But what the ~~hell~~ is a contract?
 
-Now let's see other example that breaks the Liskov's Principle.
+Contract is the nickname we give to **interfaces**: they say which methods an implementation must have, with which parameters, and with which return type.
 
-Here we have some responses from the OAuth Api's:
+Now let's look at an example that breaks the Liskov Substitution Principle. Here is what two APIs return for the authenticated user:
 
 ```json
-// Spotify User Authenticated API
+// Spotify
 // GET https://api.spotify.com/v1/me
 {
     "country": "SE",
@@ -54,13 +61,6 @@ Here we have some responses from the OAuth Api's:
     },
     "href": "https://api.spotify.com/v1/users/wizzler",
     "id": "wizzler",
-    "images": [
-        {
-            "height": null,
-            "url": "https://fbcdn-profile-a.akamaihd.net/hprofile-ak-frc3/t1.0-1/1970403_10152215092574354_1798272330_n.jpg",
-            "width": null
-        }
-    ],
     "product": "premium",
     "type": "user",
     "uri": "spotify:user:wizzler"
@@ -68,180 +68,208 @@ Here we have some responses from the OAuth Api's:
 ```
 
 ```json
-// Twitch User Authenticated API
-// GET https://api.twitch.tv/kraken/user
+// Twitch
+// GET https://api.twitch.tv/helix/users
 {
-    "_id": 44322889,
-    "bio": "Just a gamer playing games and chatting. :)",
-    "created_at": "2013-06-03T19:12:02Z",
-    "display_name": "dallas",
-    "email": "email-address@provider.com",
-    "email_verified": true,
-    "logo": "https://static-cdn.jtvnw.net/jtv_user_pictures/dallas-profile_image-1a2c906ee2c35f12-300x300.png",
-    "name": "dallas",
-    "notifications": {
-        "email": false,
-        "push": true
-    },
-    "partnered": false,
-    "twitter_connected": false,
-    "type": "staff",
-    "updated_at": "2016-12-14T01:01:44Z"
+    "data": [
+        {
+            "id": "141981764",
+            "login": "twitchdev",
+            "display_name": "TwitchDev",
+            "type": "",
+            "broadcaster_type": "partner",
+            "description": "Supporting third-party developers building Twitch integrations from chatbots to game integrations.",
+            "profile_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/twitchdev-profile_image-300x300.png",
+            "email": "not-real@email.com",
+            "created_at": "2016-12-14T20:32:28Z"
+        }
+    ]
 }
 ```
 
-If we analyze it, both objects returns similar data and the given Interface makes sense on the API context.
+Notice that both return similar data, but **not in the same shape**. Spotify returns the user at the root, while Twitch wraps everything inside `data[0]`.
+
+Now look at the clients implementing the `OAuthContract` from the previous chapter:
 
 ```php
-interface OAuthContract {
-    public function auth(string $code): bool;
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
 
     public function getAuthenticatedUser(string $accessToken): array;
 }
 
-class SpotifyService implements OAuthContract {
-
-    public function auth(string $code): bool
+final class SpotifyClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
     {
-        // do stuff
+        // ...
     }
 
     public function getAuthenticatedUser(string $accessToken): array
     {
-        return HTTP::get('https://api.spotify.com/v1/me');
+        return Http::withToken($accessToken)
+            ->get('https://api.spotify.com/v1/me')
+            ->json();
     }
 }
 
-class TwitchService implements OAuthContract {
-
-    public function auth(string $code): bool
+final class TwitchClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
     {
-        // do stuff
+        // ...
     }
 
     public function getAuthenticatedUser(string $accessToken): array
     {
-        return HTTP::get('https://api.twitch.tv/kraken/user');
+        return Http::withToken($accessToken)
+            ->withHeaders(['Client-Id' => config('services.twitch.client_id')])
+            ->get('https://api.twitch.tv/helix/users')
+            ->json();
     }
-}
-
-```
-
-Our code is projected to return an array with the listed objects of the snippet. Now let's implement a function with that interface.
-
-We have to insert a new user into the database, the principal fields are: id and email.
-
-```php
-interface OAuthContract {
-    public function auth(string $code): bool;
-
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-function registerUser(OAuthContract $service, $token) {
-
-    $token = $service->auth($token);
-    $user = $service->getAuthenticatedUser($token['access_token']);
-
-    return User::create($user)
 }
 ```
 
-If we ran the code with the Spotify provider, it going to works magically even because it returns both fields to user. But on the Twitch provider, it returns a field id as "_id".
-
-So, logically we could create a a validation to understand if those fields collides inside our registerUser method. Right?
+Both clients honor the interface: they receive a `string` and return an `array`. PHP is happy. Now let's use this contract in a function that registers the user in the database with the `name` and `email` fields:
 
 ```php
-function registerUser(OAuthContract $service, string $token) {
+function registerUser(OAuthContract $client, string $code): User
+{
+    $accessToken = $client->getAccessToken($code);
+    $providerUser = $client->getAuthenticatedUser($accessToken);
 
-    $token = $service->auth($token);
-    $user = $service->getAuthenticatedUser($token['access_token']);
-
-    if (isset($user['_id'])) {
-        $user['id'] = $user['_id'];
-    }
-
-    return User::create($user)
+    return User::query()->create([
+        'name' => $providerUser['display_name'],
+        'email' => $providerUser['email'],
+    ]);
 }
 
-
-registerUser(new SpotifyService, '123');
+registerUser(new SpotifyClient(), $code);
 // OK
 
-registerUser(new TwitchService, '123');
-// INVALID
+registerUser(new TwitchClient(), $code);
+// ❌ ErrorException: Undefined array key "display_name"
 ```
 
-Now, and if I say that we BROKE the Liskov Principle? We shouldn't make validations inside the interfaces about the return of the methods because the structure expect should be always the same (is LITERALY a CONTRACT). If you implement a method in a interface, it's necessary that the return should be equal to all cases, in a way that the class can be replaced without change the code.
+With Spotify, everything works, since `display_name` and `email` are at the root of the response. With Twitch, the data is inside `data[0]`, and the code blows up.
 
-So, how we do not violate the principle? Look:
+So, logically, we could handle Twitch inside `registerUser`. Right?
 
 ```php
-interface OAuthContract {
-    public function auth(string $code): bool;
+function registerUser(OAuthContract $client, string $code): User
+{
+    $accessToken = $client->getAccessToken($code);
+    $providerUser = $client->getAuthenticatedUser($accessToken);
 
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-class SpotifyService implements OAuthContract {
-
-    public function auth(string $code): bool
-    {
-        // do stuff
+    if ($client instanceof TwitchClient) {
+        $providerUser = $providerUser['data'][0];
     }
 
-    public function getAuthenticatedUser(string $accessToken): array
-    {
-        $result =  HTTP::get('https://api.spotify.com/v1/me');
-
-        return [
-            'id' => $result['id'],
-            'email' => $result['email']
-        ];
-    }
-}
-
-class TwitchService implements OAuthContract {
-
-    public function auth(string $code): bool
-    {
-        // do stuff
-    }
-
-    public function getAuthenticatedUser(string $accessToken): array
-    {
-        $result = HTTP::get('https://api.twitch.tv/kraken/user');
-
-        return [
-            'id' => $result['_id'],
-            'email' => $result['email']
-        ];
-    }
+    return User::query()->create([
+        'name' => $providerUser['display_name'],
+        'email' => $providerUser['email'],
+    ]);
 }
 ```
-Now that everything is standardized we don't need to make any extra validation.
+
+Now, what if I told you that we BROKE the Liskov Substitution Principle?
+
+`registerUser` receives an `OAuthContract`, but it needs to know **which** implementation it got in order to work. In other words, `TwitchClient` can't replace `SpotifyClient` without changing the code that uses the contract. And every new provider with a different shape will bring another `if`, which also breaks OCP.
+
+The problem is the contract: `array` says nothing about what's inside. If you implement an interface method, the RETURN must have the same shape in every case, so the class can be replaced without changing the code (it's LITERALLY a CONTRACT).
+
+So, how could we have done this without violating the principle? Look: let's create an object that describes exactly what the contract returns.
 
 ```php
-function registerUser(OAuthContract $service, string $token) {
-
-    $token = $service->auth($token);
-    $user = $service->getAuthenticatedUser($token['access_token']);
-
-    return User::create($user)
+final readonly class OAuthUser
+{
+    public function __construct(
+        public string $id,
+        public string $name,
+        public string $email,
+    ) {}
 }
 
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
 
-registerUser(new SpotifyService, '123');
+    public function getAuthenticatedUser(string $accessToken): OAuthUser;
+}
+
+final class SpotifyClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        $spotifyUser = Http::withToken($accessToken)
+            ->get('https://api.spotify.com/v1/me')
+            ->json();
+
+        return new OAuthUser(
+            id: $spotifyUser['id'],
+            name: $spotifyUser['display_name'],
+            email: $spotifyUser['email'],
+        );
+    }
+}
+
+final class TwitchClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        $twitchUser = Http::withToken($accessToken)
+            ->withHeaders(['Client-Id' => config('services.twitch.client_id')])
+            ->get('https://api.twitch.tv/helix/users')
+            ->json('data.0');
+
+        return new OAuthUser(
+            id: $twitchUser['id'],
+            name: $twitchUser['display_name'],
+            email: $twitchUser['email'],
+        );
+    }
+}
+```
+
+Now each client translates its API response into the same shape, and the `OAuthUser` type guarantees it. We don't need any EXTRA checks:
+
+```php
+function registerUser(OAuthContract $client, string $code): User
+{
+    $accessToken = $client->getAccessToken($code);
+    $providerUser = $client->getAuthenticatedUser($accessToken);
+
+    return User::query()->create([
+        'name' => $providerUser->name,
+        'email' => $providerUser->email,
+    ]);
+}
+
+registerUser(new SpotifyClient(), $code);
 // OK
 
-registerUser(new TwitchService, '123');
+registerUser(new TwitchClient(), $code);
 // OK
 ```
 
-We understood that pre-conditions not should be greather and post-conditions should be equals. In the case you have exceptions inside the code it needs to be equals too.
+To wrap it up, here are the Liskov rules for anyone implementing a contract:
 
-This a very very basic content about LSP, hope you enjoyed.
+- **Preconditions can't be stronger:** the implementation can't require more than the contract asks for. E.g. rejecting a valid `code` just because it doesn't have a specific prefix.
+- **Postconditions can't be weaker:** the implementation can't deliver less than the contract promises. E.g. returning an `OAuthUser` with an empty email.
+- **Exceptions must be the expected ones:** the implementation can't throw exceptions that the contract's users don't know about.
 
+This is the very basics of LSP. Hope you enjoyed it!
 
 ---
 

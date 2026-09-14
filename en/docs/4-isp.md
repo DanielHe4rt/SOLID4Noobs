@@ -1,160 +1,160 @@
-# Interface Segregation Principle
+# 4 - Interface Segregation Principle
 
-This principle in my opinion is straightforward to understand and powerful in practice. First, let's understand how it works in theory and then we go to code.
+In my opinion, this principle is straightforward to understand and powerful in practice. First, let's see how it works in theory, and then we go to the code.
 
+> "Clients should not be forced to depend upon interfaces that they do not use."
 
-ISP takes place as Interface Segregation of specific things. Remember the first principle? Single Responsibility? Now we have the same point, but with Interfaces.
+ISP is about splitting interfaces by specific responsibilities. Remember the first principle, Single Responsibility? It's the same idea here, but applied to interfaces: it's better to have several small interfaces than one giant interface that does everything.
 
-Didn't get it? Let's go to the example:
+Didn't get it? Let's go to the example. Our `OAuthContract` grew and got a method to renew the access token when it expires:
 
 ```php
-interface OAuthContract {
-    public function auth(string $code): bool;
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
 
-    public function getAuthenticatedUser(string $accessToken): array;
+    public function getAuthenticatedUser(string $accessToken): OAuthUser;
 
-    public function findUserById(string $accessToken, $userId): array;
-
-    public function followUser(string $accessToken, $userId): array;
-
-    public function unfollowUser(string $accessToken, $userId): array;
+    public function refreshAccessToken(string $refreshToken): string;
 }
 ```
 
-If you notice, we have two groups of functions that in theory should be together. Is it wrong? Not at all. But when we're talking about ISP, it probably is. But why exactly?
+Is it wrong? Not necessarily. But when we're talking about ISP, it probably is. Why exactly?
 
-If you look again, you'll see two things being done. One is essential, the other not so much.
+Let's build a scenario:
 
-Let's build a scenario for that:
+- Our chat lets you sign in with Spotify, Twitch, and GitHub;
+- Spotify and Twitch issue tokens that expire. To keep using their APIs, you have to renew them with a **refresh token**;
+- GitHub (in an OAuth App) issues a token that doesn't expire. In other words: there's no refresh token to renew.
 
-- Our chatting software has a possibility to Sign In with Spotify, Twitch and Github;
-- But you can leave messages for when the user gets registered, and you should be able to search for Users from Twitch and Github;
-- You'll be able to follow these people on social networks such as Twitch or Github.
-
-How can we segregate those interfaces? Look:
+Now look at what happens to `GithubClient`:
 
 ```php
-interface OAuthBaseContract {
-    public function auth(string $code): bool;
-
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-interface OAuthSocialContract {
-    public function findUserById(string $accessToken, $userId): array;
-
-    public function followUser(string $accessToken, $userId): array;
-
-    public function unfollowUser(string $accessToken, $userId): array;
-}
-```
-We segregate the functions for each responsibility. What should our application look like after that?
-
-```php
-interface OAuthBaseContract {
-    public function auth(string $code): bool;
-
-    public function getAuthenticatedUser(string $accessToken): array;
-}
-
-interface OAuthSocialContract {
-    public function findUserById(string $accessToken, $userId): array;
-
-    public function followUser(string $accessToken, $userId): array;
-
-    public function unfollowUser(string $accessToken, $userId): array;
-}
-
-class SpotifyService implements OAuthBaseContract {
-
-    public function auth(string $code): bool
+final class GithubClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
     {
-        // Authenticate with Spotify API
-        return true;
+        // ...
     }
 
-    public function getAuthenticatedUser(string $accessToken): array
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
     {
-        // Return user data from Spotify
-        return ['id' => '123', 'email' => 'user@example.com'];
-    }
-}
-
-class TwitchService implements OAuthBaseContract, OAuthSocialContract {
-
-    public function auth(string $code): bool
-    {
-        // Authenticate with Twitch API
-        return true;
+        // ...
     }
 
-    public function getAuthenticatedUser(string $accessToken): array
+    public function refreshAccessToken(string $refreshToken): string
     {
-        // Return user data from Twitch
-        return ['id' => '456', 'email' => 'user@twitch.tv'];
-    }
-    }
-
-    public function findUserById(string $accessToken, string $userId): array
-    {
-        // Find Twitch user by ID
-        return ['id' => $userId, 'username' => 'twitchuser'];
-    }
-
-    public function followUser(string $accessToken, string $userId): array
-    {
-        // Follow user on Twitch
-        return ['success' => true];
-    }
-
-    public function unfollowUser(string $accessToken, string $userId): array
-    {
-        // Unfollow user on Twitch
-        return ['success' => true];
-    }
-}
-
-class GithubService implements OAuthBaseContract, OAuthSocialContract  {
-
-    public function auth(string $code): bool
-    {
-        // Authenticate with Github API
-        return true;
-    }
-
-    public function getAuthenticatedUser(string $accessToken): array
-    {
-        // Return user data from Github
-        return ['id' => '789', 'email' => 'user@github.com'];
-    }
-
-    public function findUserById(string $accessToken, string $userId): array
-    {
-        // Find Github user by ID
-        return ['id' => $userId, 'login' => 'githubuser'];
-    }
-
-    public function followUser(string $accessToken, string $userId): array
-    {
-        // Follow user on Github
-        return ['success' => true];
-    }
-
-    public function unfollowUser(string $accessToken, string $userId): array
-    {
-        // Unfollow user on Github
-        return ['success' => true];
+        throw new LogicException('GitHub does not use refresh tokens.');
     }
 }
 ```
 
-You understand that for Login, all providers need to be able to run it, but for some social network interactions, only 2/3 needs to be implemented? 
+The interface forced `GithubClient` to implement a method it doesn't use. The result: a method that only exists to throw an exception. And if someone calls `refreshAccessToken()` on any `OAuthContract`, the code blows up in production. Remember LSP? Yep, we broke it too.
 
-The idea is to not write unnecessary code and tell EXACTLY which functions need to be implemented inside that class. The more you segregate, the more understandable and maintainable the code will be.
+How can we split these responsibilities into interfaces? Look:
 
-The principles of SOLID are practical in terms of responsibilities and legibility, but ISP provides a better understanding.
+```php
+interface OAuthContract
+{
+    public function getAccessToken(string $code): string;
 
-If you read until here, please consider leave a Star on the repository =)
+    public function getAuthenticatedUser(string $accessToken): OAuthUser;
+}
+
+interface RefreshableOAuthContract
+{
+    public function refreshAccessToken(string $refreshToken): string;
+}
+```
+
+We split the methods by responsibility. What does our application look like after that?
+
+```php
+final class SpotifyClient implements OAuthContract, RefreshableOAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+
+    public function refreshAccessToken(string $refreshToken): string
+    {
+        return Http::asForm()
+            ->withBasicAuth(config('services.spotify.client_id'), config('services.spotify.client_secret'))
+            ->post('https://accounts.spotify.com/api/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+            ])
+            ->json('access_token');
+    }
+}
+
+final class TwitchClient implements OAuthContract, RefreshableOAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+
+    public function refreshAccessToken(string $refreshToken): string
+    {
+        return Http::asForm()
+            ->post('https://id.twitch.tv/oauth2/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+                'client_id' => config('services.twitch.client_id'),
+                'client_secret' => config('services.twitch.client_secret'),
+            ])
+            ->json('access_token');
+    }
+}
+
+final class GithubClient implements OAuthContract
+{
+    public function getAccessToken(string $code): string
+    {
+        // ...
+    }
+
+    public function getAuthenticatedUser(string $accessToken): OAuthUser
+    {
+        // ...
+    }
+}
+```
+
+Now the type tells EXACTLY what each client can do. Whoever needs to renew a token asks for a `RefreshableOAuthContract`, and PHP won't accept a client that can't do it:
+
+```php
+function renewAccessToken(RefreshableOAuthContract $client, string $refreshToken): string
+{
+    return $client->refreshAccessToken($refreshToken);
+}
+
+renewAccessToken(new TwitchClient(), $refreshToken);
+// OK
+
+renewAccessToken(new GithubClient(), $refreshToken);
+// ❌ TypeError: renewAccessToken(): Argument #1 ($client) must be of type RefreshableOAuthContract, GithubClient given
+```
+
+See? All three providers can sign in, but only two of them can renew tokens. And none of them carries a method it doesn't use.
+
+The idea is to not write unnecessary code and to tell EXACTLY which methods each class needs to have. The more you segregate (with common sense), the more understandable and maintainable the code will be.
+
+All SOLID principles revolve around responsibility and readability, but ISP is the one that makes it most visible.
+
+If you read until here, please consider leaving a star on the repository =)
 
 ---
 

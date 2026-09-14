@@ -1,106 +1,119 @@
-# Dependency Inversion Principle
+# 5 - Dependency Inversion Principle
 
-The Dependency Inversion Principle is often confused with **Dependency Injection**, but they are related yet distinct concepts. DIP is a design principle, while DI is an implementation technique.
+The Dependency Inversion Principle is often confused with **Dependency Injection**, but they are not the same thing:
 
-All the principles listed until now are based on INTERFACES and SOLID itself was written thinking about developing with Interfaces, making it possible to let most parts of the code be generic and legible.
+- **Dependency Injection (DI)** is a technique: the class receives its dependencies from the outside (through the constructor, for example) instead of creating them;
+- **Dependency Inversion (DIP)** is a principle: it tells you **what type** those dependencies should be.
 
-Now, let's understand about DIP dogmas:
+You can use DI and still break DIP. You'll see it in a moment.
 
-- High level modules should not depend on low level modules. Both should depend on abstractions
+All the principles we've seen so far revolve around INTERFACES. SOLID was designed with interfaces in mind, because they make most of the code generic and keep readability growing.
+
+Now, let's understand the DIP dogmas:
+
+- High-level modules should not depend on low-level modules. Both should depend on abstractions;
 - Abstractions should not depend on details. Details (concrete implementations) should depend on abstractions.
 
-This concept is pretty hard to find something to apply, because Laravel itself was structured using SOLID (at least I think). So, let's take a random example to apply it.
+In other words: a **high-level module** orchestrates a business rule (e.g. "send a chat message"). A **low-level module** takes care of the details (e.g. how each type of user receives that message).
 
-Let's say  that our application has two types of users: Users and Administrators. Both are authenticable and you have some message stuff between both. Now let's apply the ISP to be more clear.
+Let's say our application has two types of users: regular users and administrators. Both can authenticate and exchange messages with each other. Let's apply ISP right away to make it cleaner:
 
 ```php
-interface Authenticable {
-    public function auth(): bool;
+interface Authenticatable
+{
+    public function authenticate(): bool;
 }
 
-interface Messenger {
+interface Messenger
+{
     public function prepareMessage(string $message): string;
 
     public function sendMessage(string $message): bool;
 }
 
-class User implements Authenticable, Messenger {
-
+final class User implements Authenticatable, Messenger
+{
+    // ...
 }
 
-class Administrator implements Authenticable, Messenger {
-
+final class Administrator implements Authenticatable, Messenger
+{
+    // ...
 }
 
-class ChatMessage {
-
-    public $model;
-
+final readonly class SendChatMessage
+{
     public function __construct(
-        private readonly Administrator $model,
-        private readonly string $message
+        private Administrator $recipient,
+        private string $message,
     ) {}
 
     public function handle(): bool
     {
-        $prepared = $this->model->prepareMessage($this->message);
-        return $this->model->sendMessage($prepared);
+        $preparedMessage = $this->recipient->prepareMessage($this->message);
+
+        return $this->recipient->sendMessage($preparedMessage);
     }
 }
 ```
 
-If we stop to think, our High Level module in this example is the ChatMessage and it DEPENDS on a low level module, that is the Administrador class. Following the 5th principle, it's already wrong because both should be depending on an abstraction.
+If we stop to think, the high-level module in this example is `SendChatMessage`, and it DEPENDS on a low-level module: the `Administrator` class. According to the 5th principle, this is already wrong, because both should depend on an abstraction.
 
 "But how? I injected the dependency and it WORKS!!!!"
 
-It works, but you forgot that you have to send messages to model `User` too, right? So it will be interesting to INVERT the dependency so that it can be used based on abstractions.
+It works. But you forgot that you also have to send messages to `User`, right? The way it is, you'd have to create a `SendChatMessageToUser`, and then one more class for every new type of user. So it's worth INVERTING the dependency and depending on the abstraction:
 
 ```php
-interface Authenticable {
-    public function auth(): bool;
-}
-
-interface Messenger {
-    public function prepareMessage(): string;
-
-    public function sendMessage(): bool;
-}
-
-class User implements Authenticable, Messenger {
-
-}
-
-class Administrator implements Authenticable, Messenger {
-
-}
-
-class ChatMessage {
-
-    public $model;
-
+final readonly class SendChatMessage
+{
     public function __construct(
-        private readonly Authenticable $model,
-        private readonly string $message
+        private Messenger $recipient,
+        private string $message,
     ) {}
 
     public function handle(): bool
     {
-        $prepared = $this->model->prepareMessage($this->message);
-        return $this->model->sendMessage($prepared);
+        $preparedMessage = $this->recipient->prepareMessage($this->message);
+
+        return $this->recipient->sendMessage($preparedMessage);
     }
 }
 ```
 
-Our dependency is now inverted. We don't need to worry about making N classes with the same process, because everything is maintained through abstractions.
+Notice that the dependency is now `Messenger`, not `Authenticatable`: `SendChatMessage` only needs to prepare and send messages. That's ISP helping you pick the smallest possible abstraction.
 
-**High-level module** (ChatMessage) depends on **abstraction** (Authenticable)  
-**Low-level modules** (User, Administrator) depend on **abstraction** (Authenticable)
+Our dependency is now inverted. We don't need to create N classes for the same process, because everything depends on abstractions:
 
-This is what "inversion" means: instead of high-level depending on low-level, both depend on abstraction.
+```text
+BEFORE                                  AFTER
 
-And that's it! We finished the SOLID4Noobs!
+┌─────────────────┐                     ┌─────────────────┐
+│ SendChatMessage │                     │ SendChatMessage │
+│  (high level)   │                     │  (high level)   │
+└────────┬────────┘                     └────────┬────────┘
+         │ depends on                            │ depends on
+         ▼                                       ▼
+┌─────────────────┐                     ┌─────────────────┐
+│  Administrator  │                     │   «interface»   │
+│   (low level)   │                     │    Messenger    │
+└─────────────────┘                     └────────▲────────┘
+                                                 │ implement
+                                        ┌────────┴────────┐
+                                  ┌─────┴─────┐   ┌───────┴───────┐
+                                  │   User    │   │ Administrator │
+                                  └───────────┘   └───────────────┘
+```
 
-I hope you liked this article/repository and if you want to see more content related to Laravel, consider [following me on Twitch](https://twitch.tv/danielhe4rt) and on [Twitter](https://twitter.com/danielhe4rt)
+In short:
+
+- The **high-level module** (`SendChatMessage`) depends on an **abstraction** (`Messenger`);
+- The **low-level modules** (`User`, `Administrator`) implement that **abstraction** (`Messenger`).
+
+This is what "inversion" means: instead of the high level depending on the low level, both depend on the abstraction. And notice that the "before" code was already using dependency injection. Injecting isn't enough: what matters is **the type** you inject.
+
+And that's it! We finished SOLID4Noobs!
+
+I hope you liked this content. If you want to see more stuff like this applied live, consider [following me on Twitch](https://twitch.tv/danielhe4rt) and on [Twitter](https://twitter.com/danielhe4rt)!
 
 See ya! =)
 

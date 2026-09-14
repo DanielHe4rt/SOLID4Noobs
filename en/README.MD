@@ -9,13 +9,14 @@
 <!-- Title -->
 
 <div style="text-align: center">
-  <img src="../.github/roxo.jpg" alt="Imagem da linguagem">
+  <h2 style="text-align: center">SOLID4Noobs</h2>
+  <img src="../.github/roxo.jpg" alt="Language image">
 </div>
     
  <!-- ABOUT THE PROJECT -->
 
 ## About the Project
-SOLID is an acronym for 5 rules that make software development easier and flexible, readable and easy maintanable. 
+SOLID is an acronym for 5 principles that help you build flexible, readable, and maintainable software.
 
 <!-- ROADMAP OF PROJECT -->
 
@@ -32,13 +33,13 @@ SOLID is an acronym for 5 rules that make software development easier and flexib
 
 ## How to Contribute
 
-Contributions makes that the open source community be a awesome place to learn, inspire and create. All the contributions
-are **extremely appreciated**.
+Contributions make the open source community an amazing place to learn, inspire, and create. Every contribution
+is **extremely appreciated**.
 
 1. Fork this project
-2. Create a new branch with the chore (`git checkout -b chore/improving-srp`)
-3. Make a new commit (`git commit -m 'the most insane commit message'`)
-4. Push it into the branch (`git push origin chore/improving-srp`)
+2. Create a new branch (`git checkout -b chore/improving-srp`)
+3. Commit your changes (`git commit -m 'the most insane commit message'`)
+4. Push to the branch (`git push origin chore/improving-srp`)
 5. Open a Pull Request
 
 ## Authors

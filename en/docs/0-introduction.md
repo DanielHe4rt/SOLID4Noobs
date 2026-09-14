@@ -1,22 +1,24 @@
 # 0 - Introduction
 
-When we talk about taking the next step as a developer, we have to understand that code quality is always the main focus on this road.
+When we talk about taking the next step as a developer, we have to understand that code quality is always the main focus.
 
-I like to think that the difference between the Junior and the Mid level developer is how they worry about the quality of the code. The Junior Developer has the mission to **MAKE IT WORK**, while the Mid Developer worries about making it work while focusing on the **DELIVERED CODE QUALITY**.
+I like to think that what separates a Junior from a Mid-level developer is how much they care about the quality of what they deliver. The Junior's mission is to **MAKE IT WORK**, while the Mid-level developer makes it work with a focus on **DELIVERY QUALITY**.
 
-There are a lot of ideas on how to improve your code, like KISS (Keep it Simple), DRY (Don't Repeat Yourself) and the one which will be approached here: SOLID.
+There are many ideas on how to improve your code, like KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), and the one we're going to cover here: SOLID.
 
-SOLID is an acronym for rules that make easier the life of who is READING the code for the next maintenance, since they are like "laws" that you have to follow in Object Oriented Programming for better code legibility and maintainability. These principles were compiled by Robert C. Martin, aka Uncle Bob.
+SOLID is an acronym for five Object-Oriented Programming principles that make life easier for whoever is READING the code during the next maintenance. They work almost like "laws" you follow for better readability and maintainability. These principles were compiled by Robert C. Martin, aka Uncle Bob, and the SOLID name was later coined by Michael Feathers.
 
-This acronym has as parts:
+The acronym stands for:
 
-* Single Responsibility Principle
-* Open-closed Principle
-* Liskov's Substitution Principle
-* Interface Segregation Principle
-* Dependency Inversion Principle
+* **S** — Single Responsibility Principle
+* **O** — Open-Closed Principle
+* **L** — Liskov Substitution Principle
+* **I** — Interface Segregation Principle
+* **D** — Dependency Inversion Principle
 
-We're going to use a very simple project representing a Twitch Chat to explain all those principles.
+We're going to use a very simple project, a Twitch-style CHAT, to explain all of these principles.
+
+> The examples use **PHP 8.3+** and **Laravel 11+**. If you use another language, don't worry: the ideas are the same.
 
 ---
 
